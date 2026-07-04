@@ -17,7 +17,7 @@ df.loc[df[((df['TWF'] == 0) & (df['HDF'] == 0) & (df['PWF'] == 0) & (df['OSF'] =
 df.drop(columns=['UDI', 'Product ID', 'Air temperature [K]',
         'TWF', 'HDF', 'PWF', 'OSF', 'RNF'], inplace=True)
 
-dummies = pd.get_dummies(df, columns=['Type'], drop_first=True)
+dummies = pd.get_dummies(df, columns=['Type'], drop_first=True, dtype=int)
 
 df = df.drop(columns=['Type'])
 df.insert(loc=0, column='Type_L', value=dummies['Type_L'])
