@@ -10,21 +10,15 @@ Ostatnia aktualizacja kontekstu: 2026-07-05.
 
 Przy każdej kolejnej pracy z tym repozytorium najpierw przeczytaj ten plik, a dopiero potem zaglądaj do notebooków i skryptów.
 
-Aktualny stan po sprawdzeniu repozytorium:
+Ważne rozróżnienie:
 
 ```text
-Notebooki .ipynb są widoczne przez GitHub, ale ich wyniki komórek nie są aktualnie zapisane.
-W plikach notebooków widoczne są execution_count: null oraz outputs: [].
+GitHub connector może pokazywać notebooki .ipynb bez outputs, nawet jeżeli użytkownik lokalnie ma wyniki komórek.
+Użytkownik przesłał lokalne snapshoty notebooków z outputami: 01_eda.ipynb, 02_data_cleaning.ipynb, 03_data_preparation.ipynb.
+Najważniejsze wyniki z tych outputów są zapisane w tym pliku.
 ```
 
-To znaczy:
-
-```text
-AI widzi kod i markdown notebooków, ale nie widzi tabel, wykresów ani tekstowych wyników komórek,
-jeżeli te wyniki nie zostały zapisane w samym pliku .ipynb i wypchnięte przez git push.
-```
-
-Dlatego najważniejsze stabilne wyniki i decyzje projektowe są zapisane tutaj, a nie wyłącznie w outputach notebooków.
+Dlatego ten plik ma być źródłem trwałego kontekstu, jeśli notebooki zostaną wyczyszczone przez `Clear All Outputs`.
 
 ---
 
@@ -80,8 +74,8 @@ RNF
 Znaczenie głównych kolumn:
 
 - `UDI` — unikalny identyfikator rekordu.
-- `Product ID` — identyfikator produktu / maszyny; może kodować typ maszyny.
-- `Type` — typ maszyny, np. L, M, H.
+- `Product ID` — identyfikator produktu / maszyny; koduje typ maszyny przez pierwszą literę.
+- `Type` — typ maszyny: H, L, M.
 - `Air temperature [K]` — temperatura powietrza w kelwinach.
 - `Process temperature [K]` — temperatura procesu w kelwinach.
 - `Rotational speed [rpm]` — prędkość obrotowa.
@@ -125,141 +119,354 @@ Uwaga techniczna: dostępne narzędzie GitHub może nie mieć wygodnej funkcji p
 
 ---
 
-## 4. Wyniki i decyzje, które mają przetrwać czyszczenie outputów notebooka
+## 4. Najważniejsze wyniki EDA z lokalnych outputów notebooków
 
-### 4.1. Decyzja o targetcie
+Źródło tej sekcji: przesłane przez użytkownika lokalne notebooki z outputami.
 
-Target projektu:
+### 4.1. Rozmiar i kompletność danych po dodaniu cech inżynierskich
+
+W `01_eda.ipynb` po dodaniu `Temperature difference` i `Power [W]` zbiór ma:
 
 ```text
-Machine failure
+shape = (10000, 16)
 ```
 
-Charakter zadania:
+Braki danych:
 
 ```text
-binary classification
+df.isnull().any().any() = False
 ```
 
-Model ma przewidywać sam fakt awarii, niekoniecznie jej dokładny typ.
-
-### 4.2. Decyzja o usunięciu identyfikatorów
-
-Z dotychczasowej analizy projektu:
+Duplikaty:
 
 ```text
-UDI i Product ID nie powinny być cechami wejściowymi modelu.
+df.duplicated().sum() = 0
 ```
 
-Uzasadnienie:
-
-- `UDI` jest identyfikatorem technicznym, a nie zjawiskiem fizycznym.
-- `Product ID` ma bardzo wysoką unikalność i może prowadzić do zapamiętywania rekordów.
-- Wcześniejsze sprawdzenie projektu wskazywało, że `Product ID` jednoznacznie koduje `Type`, więc jest redundantne względem typu maszyny.
-
-### 4.3. Decyzja o usunięciu flag typów awarii z cech wejściowych
-
-Nie używać jako cech wejściowych do modelu binarnego:
+Identyfikatory:
 
 ```text
-TWF
-HDF
-PWF
-OSF
-RNF
-```
-
-Powód:
-
-```text
-Te kolumny opisują rodzaj awarii, więc zawierają informację bardzo bliską targetowi Machine failure.
-Użycie ich jako X dałoby sztucznie dobry wynik i byłoby klasycznym data leakage.
-```
-
-### 4.4. Decyzja o cechach pochodnych
-
-Tworzone są dwie ważne cechy inżynierskie:
-
-```text
-Temperature difference = Process temperature [K] - Air temperature [K]
-Power [W] = Rotational speed [rpm] * Torque [Nm] * (2 * pi / 60)
+UDI is_unique = True
+Product ID is_unique = True
 ```
 
 Interpretacja:
 
-- `Temperature difference` mówi, o ile proces jest cieplejszy od otoczenia.
-- `Power [W]` przybliża moc mechaniczną układu.
-
-Fizycznie:
-
 ```text
-Moc mechaniczna = moment obrotowy * prędkość kątowa
+Dane są kompletne, bez duplikatów i mają unikalne identyfikatory.
+UDI oraz Product ID nie powinny być używane jako cechy predykcyjne.
 ```
 
-Ponieważ prędkość w danych jest w `rpm`, przelicznik do rad/s wynosi:
+### 4.2. Product ID koduje Type
+
+Wynik `pd.crosstab(df['Type'], df['Product ID'].str[0])`:
 
 ```text
-2 * pi / 60
+Product ID     H     L     M
+Type
+H           1003     0     0
+L              0  6000     0
+M              0     0  2997
 ```
 
-### 4.5. Decyzja o korekcie niespójnych rekordów awarii
-
-W czyszczeniu danych korygowane są rekordy spełniające warunek:
+Interpretacja:
 
 ```text
-Machine failure == 1
-oraz
-TWF == 0, HDF == 0, PWF == 0, OSF == 0, RNF == 0
+Pierwsza litera Product ID jednoznacznie odpowiada Type.
+Product ID jest redundantny względem Type i nie powinien być używany jako cecha modelu.
 ```
 
-Decyzja projektowa:
+### 4.3. Rozkład typów maszyn
+
+Wynik `df['Type'].value_counts()`:
 
 ```text
-Takie rekordy są traktowane jako szum / niespójność etykiety i ustawiane na Machine failure = 0.
+L    6000
+M    2997
+H    1003
 ```
 
-Uwaga krytyczna:
-
-To jest założenie metodologiczne, nie prawda absolutna. Możliwy kontrargument: awaria mogła istnieć, ale typ awarii nie został poprawnie opisany. W tym projekcie przyjęto jednak interpretację, że brak jakiejkolwiek flagi typu awarii oznacza brak wiarygodnego potwierdzenia awarii.
-
-### 4.6. RNF jako problem interpretacyjny
-
-`RNF`, czyli `Random Failure`, jest szczególnie problematyczne.
-
-Interpretacja praktyczna:
+Interpretacja:
 
 ```text
-Nie każda awaria musi być dobrze przewidywalna z dostępnych parametrów procesu.
+Najwięcej jest maszyn typu L, potem M, najmniej H.
+Przy porównywaniu liczby awarii między typami trzeba patrzeć na procenty, a nie tylko liczby bezwzględne.
 ```
 
-Jeżeli model myli część przypadków związanych z RNF, nie musi to oznaczać, że model jest źle zbudowany. Może oznaczać, że w danych nie ma wystarczającego sygnału przyczynowego.
+### 4.4. Rozkład targetu w surowym EDA
 
-### 4.7. Problem niezbalansowanych klas
-
-Awarii jest znacznie mniej niż normalnych przypadków. Dlatego sama `accuracy` może być myląca.
-
-Nie oceniać modelu wyłącznie przez:
+W `01_eda.ipynb`, przed korektą niespójnych rekordów:
 
 ```text
-accuracy
+Machine failure = 1: 339 rekordów
+Machine failure = 0: 96.61%
+Machine failure = 1: 3.39%
 ```
 
-Ważniejsze metryki:
+Interpretacja:
 
 ```text
-recall dla klasy 1
-precision dla klasy 1
-F1-score dla klasy 1
-confusion matrix
-ROC-AUC
-PR-AUC / Average Precision
+Zbiór jest silnie niezbalansowany.
+Accuracy może być złudnie wysoka, jeśli model będzie prawie zawsze przewidywał brak awarii.
 ```
 
-Szczególnie ważny jest `recall` dla klasy awarii, bo w predykcyjnym utrzymaniu ruchu przeoczenie awarii bywa kosztowniejsze niż fałszywy alarm.
+### 4.5. Awaryjność według typu maszyny
+
+Liczba awarii według typu:
+
+```text
+L: 235
+M: 83
+H: 21
+```
+
+Tabela liczności `Type` × `Machine failure`:
+
+```text
+Machine failure     0    1
+Type
+H                 982   21
+L                5765  235
+M                2914   83
+```
+
+Awaryjność procentowa w obrębie typu:
+
+```text
+H: 2.09%
+L: 3.92%
+M: 2.77%
+```
+
+Interpretacja:
+
+```text
+Największą względną awaryjność ma typ L.
+Nie wystarczy patrzeć na bezwzględne liczby awarii, bo typ L ma też najwięcej rekordów.
+```
+
+### 4.6. Suma typów awarii według typu maszyny
+
+Wynik `df.groupby('Type')[['Machine failure', 'TWF', 'HDF', 'PWF', 'OSF', 'RNF']].sum()`:
+
+```text
+Type  Machine failure  TWF  HDF  PWF  OSF  RNF
+H                  21    7    8    5    2    4
+L                 235   25   76   59   87   13
+M                  83   14   31   31    9    2
+```
+
+Interpretacja robocza:
+
+```text
+Dla typu L szczególnie często pojawia się OSF oraz HDF.
+Dla typu M istotne są HDF i PWF.
+Dla typu H liczby są małe, więc wnioski trzeba traktować ostrożnie.
+```
+
+### 4.7. Rekordy z kilkoma typami awarii naraz
+
+Wynik dla rekordów, gdzie suma flag `TWF`, `HDF`, `PWF`, `OSF`, `RNF` jest większa lub równa 2:
+
+```text
+24 rekordy mają co najmniej dwa typy awarii jednocześnie.
+```
+
+Wynik dla co najmniej trzech typów awarii:
+
+```text
+1 rekord ma co najmniej trzy typy awarii jednocześnie.
+UDI = 5910, Product ID = H35323, Type = H
+TWF = 1, PWF = 1, OSF = 1
+Machine failure = 1
+```
+
+Interpretacja:
+
+```text
+Typy awarii nie są rozłączne. Jeden rekord może należeć do kilku kategorii awarii.
+To wzmacnia decyzję, że projekt binarny Machine failure jest prostszy niż predykcja pełnego typu awarii.
+```
+
+### 4.8. Problem RNF
+
+Wynik dla `RNF == 1`:
+
+```text
+RNF = 1 występuje w 19 rekordach.
+```
+
+Wynik dla rekordów, gdzie istnieje dowolna flaga awarii, ale `Machine failure == 0`:
+
+```text
+18 rekordów ma jakąś flagę awarii przy Machine failure = 0.
+Wszystkie te 18 rekordów to przypadki RNF = 1 bez innych typów awarii.
+```
+
+Jeden przypadek RNF współwystępuje z inną awarią:
+
+```text
+UDI = 3612
+Type = L
+Machine failure = 1
+TWF = 1
+RNF = 1
+```
+
+Interpretacja:
+
+```text
+RNF jest problematyczne interpretacyjnie.
+Większość RNF wygląda jak losowe zdarzenie bez potwierdzenia w Machine failure.
+RNF nie powinno być traktowane tak samo jak deterministyczne typy awarii.
+```
+
+### 4.9. Machine failure bez żadnego typu awarii
+
+W `01_eda.ipynb` przed czyszczeniem znaleziono:
+
+```text
+9 rekordów, gdzie Machine failure = 1, ale TWF = HDF = PWF = OSF = RNF = 0.
+```
+
+Po korekcie w `02_data_cleaning.ipynb` wynik sprawdzenia wynosi:
+
+```text
+0 takich rekordów
+```
+
+Parametry tych 9 rekordów przed korektą były w przybliżeniu:
+
+```text
+Temperature difference: mean 9.87, min 8.20, max 11.20
+Rotational speed [rpm]: mean 1507.67, min 1363, max 1710
+Torque [Nm]: mean 41.69, min 27.3, max 54.0
+Tool wear [min]: mean 117.22, min 20, max 210
+Power [W]: mean 6453.39, min 4888.63, max 7707.58
+```
+
+Interpretacja i decyzja:
+
+```text
+Te rekordy potraktowano jako niespójność etykiety / szum i ustawiono Machine failure = 0.
+To jest założenie projektowe, a nie prawda absolutna.
+Kontrargument: mogły to być realne awarie bez poprawnie oznaczonego typu.
+```
+
+### 4.10. Awaria przy Tool wear = 0
+
+W EDA znaleziono 3 rekordy, gdzie:
+
+```text
+Tool wear [min] = 0
+Machine failure = 1
+```
+
+Wszystkie trzy przypadki mają:
+
+```text
+PWF = 1
+```
+
+Ich moce:
+
+```text
+9239.21 W
+9177.81 W
+9432.38 W
+```
+
+Interpretacja:
+
+```text
+Awaria przy zerowym zużyciu narzędzia nie musi być błędem, jeśli jest to Power Failure.
+Wysoka moc może tłumaczyć awarię niezależnie od Tool wear.
+```
+
+### 4.11. Korelacje temperatur
+
+W `02_data_cleaning.ipynb` wynik korelacji:
+
+```text
+Air temperature [K] vs Process temperature [K] = 0.876107
+Air temperature [K] vs Temperature difference = -0.699583
+Process temperature [K] vs Temperature difference = -0.268413
+```
+
+Interpretacja:
+
+```text
+Air temperature i Process temperature są silnie dodatnio skorelowane.
+Temperature difference wnosi inną informację, bo jest różnicą między temperaturą procesu i powietrza.
+Usunięcie Air temperature [K] po utworzeniu Temperature difference jest metodologicznie uzasadnione, ale trzeba pamiętać, że jest to decyzja modelowa, nie konieczność matematyczna.
+```
+
+### 4.12. Charakterystyczne przedziały dla typów awarii
+
+#### TWF
+
+Dla `TWF == 1`:
+
+```text
+Tool wear [min]: min 198, max 253
+```
+
+Interpretacja:
+
+```text
+TWF jest silnie związany z dużym zużyciem narzędzia.
+```
+
+#### HDF
+
+Dla `HDF == 1`:
+
+```text
+Temperature difference: min 7.6, max 8.6
+Rotational speed [rpm]: min 1212, max 1379
+```
+
+Interpretacja:
+
+```text
+HDF pojawia się przy niskiej różnicy temperatur i relatywnie niskich obrotach.
+To sugeruje mechanizm związany z odprowadzaniem ciepła.
+```
+
+#### PWF
+
+Dla `PWF == 1` analiza K-Means na `Power [W]` wskazała dwa przedziały:
+
+```text
+Przedział 1: 1148.44–3477.24 W
+Przedział 2: 9004.43–10469.92 W
+```
+
+Interpretacja:
+
+```text
+PWF może oznaczać awarie zarówno przy zbyt niskiej, jak i zbyt wysokiej mocy.
+To ważny nieliniowy wzorzec: samo 'im więcej mocy, tym gorzej' jest zbyt prostym założeniem.
+```
+
+#### OSF
+
+Dla `OSF == 1` wyznaczono próg na iloczynie:
+
+```text
+Tool wear [min] * Torque [Nm] ≈ 11003.2
+```
+
+Interpretacja:
+
+```text
+OSF jest dobrze opisywany przez interakcję zużycia narzędzia i momentu obrotowego.
+To wskazuje, że sama pojedyncza cecha może nie wystarczyć; ważne są zależności między cechami.
+```
 
 ---
 
-## 5. Czyszczenie danych w `python/cleaning.py`
+## 5. Czyszczenie danych w `python/cleaning.py` i `02_data_cleaning.ipynb`
 
 Skrypt `python/cleaning.py` wykonuje następujący proces:
 
@@ -269,9 +476,17 @@ Skrypt `python/cleaning.py` wykonuje następujący proces:
 ./data/raw/produkcja.csv
 ```
 
-2. Oblicza `Power [W]`.
+2. Oblicza `Power [W]`:
 
-3. Oblicza `Temperature difference`.
+```text
+Power [W] = Rotational speed [rpm] * Torque [Nm] * (2 * pi / 60)
+```
+
+3. Oblicza `Temperature difference`:
+
+```text
+Temperature difference = Process temperature [K] - Air temperature [K]
+```
 
 4. Koryguje niespójne rekordy `Machine failure == 1` bez żadnej flagi typu awarii.
 
@@ -315,30 +530,219 @@ Plik przetworzony:
 data/processed/produkcja_clean.csv
 ```
 
-Rozpoznane kolumny po czyszczeniu:
+W `03_data_preparation.ipynb` potwierdzono:
 
 ```text
-Type_L
-Type_M
+shape = (10000, 9)
+```
+
+Kolumny i typy:
+
+```text
+Type_L                       int64
+Type_M                       int64
+Process temperature [K]    float64
+Temperature difference     float64
+Rotational speed [rpm]       int64
+Torque [Nm]                float64
+Power [W]                  float64
+Tool wear [min]              int64
+Machine failure              int64
+```
+
+Interpretacja:
+
+```text
+Machine failure pozostaje targetem.
+Pozostałe 8 kolumn to cechy wejściowe X.
+```
+
+Po czyszczeniu liczba awarii wynosi:
+
+```text
+Machine failure = 1: 330 rekordów
+Machine failure = 0: 9670 rekordów
+```
+
+Proporcje:
+
+```text
+Machine failure = 0: 96.7%
+Machine failure = 1: 3.3%
+```
+
+---
+
+## 7. Przygotowanie danych pod ML z `03_data_preparation.ipynb`
+
+Podział na cechy i target:
+
+```text
+X shape = (10000, 8)
+y shape = (10000,)
+```
+
+Podział train/test:
+
+```text
+test_size = 0.2
+random_state = 42
+stratify = y
+```
+
+Wynik podziału:
+
+```text
+Train: 8000 rekordów
+Test: 2000 rekordów
+Awarie w train: 264 (3.3%)
+Awarie w test: 66 (3.3%)
+```
+
+Interpretacja:
+
+```text
+Stratyfikacja działa poprawnie: udział awarii w train i test jest taki sam.
+To jest ważne przy niezbalansowanych klasach.
+```
+
+Skalowane kolumny numeryczne:
+
+```text
 Process temperature [K]
 Temperature difference
 Rotational speed [rpm]
 Torque [Nm]
 Power [W]
 Tool wear [min]
-Machine failure
 ```
 
-Interpretacja:
+Nie skalować one-hot encoded:
 
-- `Machine failure` pozostaje targetem.
-- Pozostałe kolumny są kandydatami na cechy wejściowe modelu.
-- Dane są częściowo przygotowane do modelowania.
-- Przed modelem nadal należy wykonać podział train/test i ewentualne skalowanie cech numerycznych.
+```text
+Type_L
+Type_M
+```
+
+Po `StandardScaler` na train średnie są ~0, a odchylenia standardowe ~1.
+
+Parametry `StandardScaler` z train:
+
+```text
+mean_:
+Process temperature [K] = 310.005375
+Temperature difference = 10.0002375
+Rotational speed [rpm] = 1538.92525
+Torque [Nm] = 39.98705
+Power [W] = 6280.70232
+Tool wear [min] = 107.59825
+
+scale_:
+Process temperature [K] = 1.48058303
+Temperature difference = 0.999674294
+Rotational speed [rpm] = 178.987704
+Torque [Nm] = 9.96722403
+Power [W] = 1068.53168
+Tool wear [min] = 63.5351269
+```
+
+Uwaga metodologiczna:
+
+```text
+Scaler został fitowany na X_train, a potem zastosowany do X_train i X_test.
+To jest poprawny schemat, bo nie ma przecieku informacji z testu do treningu.
+```
 
 ---
 
-## 7. Notebooki
+## 8. Decyzje metodologiczne, które trzeba zachować
+
+### 8.1. Data leakage
+
+Nie używać jako cech wejściowych do modelu binarnego:
+
+```text
+TWF
+HDF
+PWF
+OSF
+RNF
+```
+
+Powód:
+
+```text
+Te kolumny opisują rodzaj awarii, więc zawierają informację bardzo bliską targetowi Machine failure.
+Użycie ich jako X dałoby sztucznie dobry wynik i byłoby klasycznym data leakage.
+```
+
+### 8.2. Identyfikatory
+
+Nie używać jako cech wejściowych:
+
+```text
+UDI
+Product ID
+```
+
+Powód:
+
+```text
+UDI jest tylko numerem rekordu.
+Product ID jest unikalny i koduje Type, więc grozi zapamiętywaniem oraz redundancją.
+```
+
+### 8.3. Klasy niezbalansowane
+
+Awarii jest tylko około 3.3% po czyszczeniu.
+
+Nie oceniać modelu wyłącznie przez:
+
+```text
+accuracy
+```
+
+Ważniejsze metryki:
+
+```text
+recall dla klasy 1
+precision dla klasy 1
+F1-score dla klasy 1
+confusion matrix
+ROC-AUC
+PR-AUC / Average Precision
+```
+
+Szczególnie ważny jest `recall` dla klasy awarii, bo w predykcyjnym utrzymaniu ruchu przeoczenie awarii bywa kosztowniejsze niż fałszywy alarm.
+
+### 8.4. Krytyczne założenie o korekcie etykiet
+
+Korekta 9 rekordów `Machine failure = 1` bez typu awarii jest decyzją projektową.
+
+Fakty:
+
+```text
+Przed korektą: 339 awarii.
+Po korekcie: 330 awarii.
+```
+
+Interpretacja przyjęta w projekcie:
+
+```text
+Brak jakiejkolwiek flagi typu awarii oznacza brak wiarygodnego potwierdzenia awarii.
+```
+
+Kontrargument:
+
+```text
+Mogły to być rzeczywiste awarie, ale z błędnie nieuzupełnionym typem.
+```
+
+W dalszym raporcie warto jawnie napisać, że jest to arbitralna, ale uzasadniona decyzja czyszczenia danych.
+
+---
+
+## 9. Notebooki
 
 ### `notebooks/01_eda.ipynb`
 
@@ -350,16 +754,11 @@ Zawiera między innymi:
 - wczytanie `../data/raw/produkcja.csv`,
 - funkcję pomocniczą `plot_box_hist`,
 - analizę struktury danych,
-- komórki typu `df.head()`, `df.isnull()`, `df.shape`, `df.dtypes`, `df.describe()`, `df.duplicated().sum()`.
-
-Aktualny stan zapisu notebooka:
-
-```text
-execution_count: null
-outputs: []
-```
-
-Czyli widoczny jest kod, ale nie są widoczne wyniki tabelaryczne ani wykresy.
+- analizę braków, duplikatów i typów danych,
+- analizę typów maszyn,
+- analizę RNF i niespójnych etykiet,
+- analizę TWF, HDF, PWF, OSF,
+- wykresy histogramów, boxplotów, pairplotów i scatterplotów.
 
 ### `notebooks/02_data_cleaning.ipynb`
 
@@ -374,31 +773,21 @@ Zawiera między innymi:
 - usunięcie kolumn ryzykownych dla modelowania,
 - one-hot encoding kolumny `Type`.
 
-Aktualny stan zapisu notebooka:
-
-```text
-execution_count: null
-outputs: []
-```
-
-Czyli widoczny jest kod i decyzje, ale nie wyniki wykonania komórek.
-
 ### `notebooks/03_data_preparation.ipynb`
 
-Na moment aktualizacji kontekstu notebook jest praktycznie pusty.
+Notebook przygotowujący dane pod ML.
 
-Powinien docelowo służyć do etapu przygotowania danych pod ML, np.:
+Zawiera między innymi:
 
+- wczytanie `data/processed/produkcja_clean.csv`,
 - wydzielenie `X` i `y`,
-- `train_test_split`,
-- `stratify=y`,
-- skalowanie cech numerycznych,
-- przygotowanie pipeline'u,
-- zapis gotowych zbiorów lub przejście do modelowania.
+- sprawdzenie rozkładu klas,
+- `train_test_split` ze stratyfikacją,
+- `StandardScaler` dla cech numerycznych.
 
 ---
 
-## 8. Aktualny stan modelowania
+## 10. Aktualny stan modelowania
 
 Na podstawie rozpoznanych plików repozytorium nie widać jeszcze kompletnego etapu trenowania modeli ML.
 
@@ -408,11 +797,10 @@ Planowany klasyczny przebieg:
 1. Wczytaj data/processed/produkcja_clean.csv
 2. Oddziel target: y = Machine failure
 3. Oddziel cechy: X = reszta kolumn
-4. Podziel dane na train/test
-5. Zastosuj stratify=y, bo awarie są rzadkie
-6. Przeskaluj cechy numeryczne dla modeli wrażliwych na skalę
-7. Porównaj modele bazowe
-8. Oceń confusion matrix, recall, precision, F1, ROC-AUC, PR-AUC
+4. Podziel dane na train/test z stratify=y
+5. Przeskaluj cechy numeryczne, fitując scaler tylko na train
+6. Porównaj modele bazowe
+7. Oceń confusion matrix, recall, precision, F1, ROC-AUC, PR-AUC
 ```
 
 Sugerowane pierwsze modele:
@@ -425,7 +813,7 @@ GradientBoostingClassifier
 
 ---
 
-## 9. Standard pracy, żeby AI widziało wyniki
+## 11. Standard pracy, żeby AI widziało wyniki
 
 Jeżeli zmieniasz kod, wystarczy zwykły commit i push:
 
@@ -473,7 +861,7 @@ to wyniki nie zostały zapisane w notebooku.
 
 ---
 
-## 10. Lepszy sposób zachowywania ważnych wyników niż outputy notebooka
+## 12. Lepszy sposób zachowywania ważnych wyników niż outputy notebooka
 
 Outputy notebooka są wygodne, ale kruche. Można je przypadkiem usunąć przez `Clear All Outputs`.
 
@@ -501,11 +889,11 @@ plt.savefig("../figures/hdf_temperature_difference.png", dpi=300, bbox_inches="t
 
 ---
 
-## 11. Zalecane następne kroki
+## 13. Zalecane następne kroki
 
 Najbliższe dobre kroki w projekcie:
 
-1. Uporządkować `notebooks/03_data_preparation.ipynb`.
+1. Dokończyć `notebooks/03_data_preparation.ipynb` albo przenieść przygotowanie danych do skryptu.
 2. Dodać `requirements.txt` z bibliotekami projektu.
 3. Dodać folder `reports/` na wnioski z EDA.
 4. Dodać folder `figures/` na wykresy zapisywane z notebooków.
@@ -527,7 +915,7 @@ python/modeling.py
 
 ---
 
-## 12. Jak AI powinno pracować z tym projektem
+## 14. Jak AI powinno pracować z tym projektem
 
 Przy kolejnych analizach AI powinno najpierw sprawdzić:
 
@@ -555,6 +943,6 @@ Najważniejsza zasada:
 
 ```text
 Nie zakładać, że wyniki komórek notebooka są widoczne, jeśli w pliku .ipynb nie ma zapisanych outputs.
+Jeżeli potrzebne są dokładne liczby z EDA, najpierw sprawdzić PROJECT_CONTEXT.md.
+Jeżeli PROJECT_CONTEXT.md nie wystarcza, policzyć ponownie z CSV albo poprosić użytkownika o przesłanie aktualnego notebooka z outputami.
 ```
-
-Jeżeli potrzebne są dokładne liczby z EDA, a notebook nie ma outputs, należy je ponownie policzyć z pliku CSV albo poprosić użytkownika o zapisanie wyników do `reports/eda_summary.md`.
