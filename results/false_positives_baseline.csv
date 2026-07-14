@@ -1,17 +1,18 @@
-record_index,model,predicted_probability,margin,Process temperature [K],Temperature difference,Rotational speed [rpm],Torque [Nm],Power [W],Tool wear [min],OSF_distance,OSF_like,HDF_like,PWF_like,TWF_like,n_like_mechanisms
-7677,Gradient Boosting,0.855,0.355,311.7,11.1,1428,52.6,7865.79,208,-62.4,False,False,False,True,1
-1507,Gradient Boosting,0.85,0.35,308.6,10.6,1376,55.7,8026.06,214,916.6,True,False,False,True,2
-6925,Gradient Boosting,0.742,0.242,311.6,10.5,1266,55.5,7357.92,210,651.8,True,False,False,True,2
-9671,Gradient Boosting,0.657,0.157,310.2,11.2,1412,44.1,6520.82,246,-154.6,False,False,False,True,1
-7935,Gradient Boosting,0.589,0.089,311.9,11.1,1356,44.3,6290.6,214,-1523.0,False,False,False,True,1
-4862,Gradient Boosting,0.548,0.048,312.1,8.6,1326,55.7,7734.41,114,-4653.4,False,True,False,False,1
-3764,Gradient Boosting,0.543,0.043,311.0,8.6,1329,54.6,7598.82,176,-1393.6,False,True,False,False,1
-4110,Random Forest,0.75,0.25,310.6,8.6,1361,46.7,6655.85,182,-2503.8,False,True,False,False,1
-3764,Random Forest,0.67,0.17,311.0,8.6,1329,54.6,7598.82,176,-1393.6,False,True,False,False,1
-4862,Random Forest,0.665,0.165,312.1,8.6,1326,55.7,7734.41,114,-4653.4,False,True,False,False,1
-7677,Random Forest,0.645,0.145,311.7,11.1,1428,52.6,7865.79,208,-62.4,False,False,False,True,1
-7081,Random Forest,0.64,0.14,310.4,9.7,1366,52.6,7524.28,205,-220.2,False,False,False,True,1
-4898,Random Forest,0.61,0.11,312.4,8.8,1460,53.7,8210.24,214,488.6,True,False,False,True,2
-4115,Random Forest,0.58,0.08,310.6,8.6,1346,54.7,7710.12,196,-282.0,False,True,False,False,1
-8198,Random Forest,0.56,0.06,310.7,11.4,1374,48.9,7035.97,222,-147.4,False,False,False,True,1
-7255,Random Forest,0.53,0.03,310.3,10.1,1704,29.4,5246.21,221,-4505.8,False,False,False,True,1
+record_index,model,predicted_probability,margin,OSF_distance,OSF_like,HDF_like,PWF_like,TWF_like,n_like_mechanisms
+3764,Random Forest,0.67,0.17000000000000004,-1393.6000000000004,False,True,False,False,1
+4898,Random Forest,0.61,0.10999999999999999,488.60000000000036,True,False,False,True,2
+8198,Random Forest,0.56,0.06000000000000005,-147.40000000000146,False,False,False,True,1
+7081,Random Forest,0.64,0.14,-220.20000000000073,False,False,False,True,1
+7677,Random Forest,0.645,0.14500000000000002,-62.399999999999636,False,False,False,True,1
+5653,Random Forest,0.5,0.0,-3091.2000000000016,False,False,False,True,1
+4115,Random Forest,0.58,0.07999999999999996,-282.0,False,True,False,False,1
+4110,Random Forest,0.75,0.25,-2503.800000000001,False,True,False,False,1
+7255,Random Forest,0.53,0.030000000000000027,-4505.800000000001,False,False,False,True,1
+4862,Random Forest,0.665,0.16500000000000004,-4653.400000000001,False,True,False,False,1
+6925,Gradient Boosting,0.7421281881252405,0.2421281881252405,651.7999999999993,True,False,False,True,2
+3764,Gradient Boosting,0.5432767127174406,0.0432767127174406,-1393.6000000000004,False,True,False,False,1
+7677,Gradient Boosting,0.8546906067399409,0.3546906067399409,-62.399999999999636,False,False,False,True,1
+1507,Gradient Boosting,0.8503356788164087,0.3503356788164087,916.6000000000004,True,False,False,True,2
+7935,Gradient Boosting,0.5894818072255275,0.08948180722552745,-1523.0000000000018,False,False,False,True,1
+4862,Gradient Boosting,0.5476235177890709,0.047623517789070924,-4653.400000000001,False,True,False,False,1
+9671,Gradient Boosting,0.6568229200393446,0.15682292003934462,-154.60000000000036,False,False,False,True,1
