@@ -1,9 +1,22 @@
 # PROJECT_CONTEXT.md
 
+## Aktualizacja 2026-07-16
+
+Stan po dzisiejszych zmianach:
+
+- przygotowanie danych zostalo wyodrebnione do `python/data_preparation.py`,
+- skrypt waliduje wymagane kolumny, braki danych, duplikaty, target i zgodnosc indeksow,
+- skrypt wykonuje staly podzial 80/20, skaluje wylacznie kolumny numeryczne i zapisuje szesc artefaktow CSV,
+- notebooki `02_data_cleaning.ipynb`, `03_data_preparation.ipynb` i `04_modeling.ipynb` zostaly dostosowane do tego kierunku,
+- do `.gitignore` dodano `__pycache__/`.
+
+Dzisiejsze zmiany obejmuja commity `956551a`, `c8d55bb` i `ae5cdef`. Aktualny HEAD `ae5cdefb3779bc63193f67ada5a3461d20b385df` jest zgodny z `origin/main`.
+
+
 Stały kontekst projektu predykcji awarii maszyn. Przed pracą z repozytorium należy przeczytać ten plik, a następnie odpowiednie notebooki i pliki wynikowe.
 
-**Ostatni przegląd:** 2026-07-14  
-**Przejrzany commit `main`:** `7bbea413c9680707cb8edc9684b6bc64a6e8ddc4`
+**Ostatni przegląd:** 2026-07-16  
+**Przejrzany commit `main`:** `ae5cdefb3779bc63193f67ada5a3461d20b385df`
 
 ---
 
@@ -127,6 +140,7 @@ notebooks/03_data_preparation.ipynb
 notebooks/04_modeling.ipynb
 
 python/cleaning.py
+python/data_preparation.py
 
 results/model_results_baseline.csv
 results/false_negatives_baseline.csv
