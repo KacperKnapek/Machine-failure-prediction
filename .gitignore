@@ -5,3 +5,4 @@ PROJECT_CONTEXT.md
 .vscode/
 .agents
 .codex
+__pycache__/

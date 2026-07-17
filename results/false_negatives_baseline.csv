@@ -1,4 +1,4 @@
-record_index,y_true,log_reg_pred,log_reg_proba,random_forest_pred,random_forest_proba,gradient_boosting_pred,gradient_boosting_proba,Process temperature [K],Temperature difference,Rotational speed [rpm],Torque [Nm],Power [W],Tool wear [min],Type_L,Type_M,missed_by_n_models
+record_index,y_true,logistic_regression_pred,logistic_regression_proba,random_forest_pred,random_forest_proba,gradient_boosting_pred,gradient_boosting_proba,Process temperature [K],Temperature difference,Rotational speed [rpm],Torque [Nm],Power [W],Tool wear [min],Type_L,Type_M,missed_by_n_models
 8199,1,0,0.07013774113602843,0,0.15,0,0.1385852223296572,310.7,11.5,1737,27.0,4911.25,225,1,0,3
 8609,1,0,0.24907001190674388,0,0.11,0,0.05784217873187979,308.3,10.9,1475,40.5,6255.7,222,1,0,3
 4034,1,0,0.43192482947418465,0,0.15,0,0.053292813880074466,310.8,8.8,1615,29.0,4904.55,235,1,0,3
