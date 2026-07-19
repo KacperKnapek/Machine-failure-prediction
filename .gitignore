@@ -5,3 +5,4 @@ notebooks/01_eda — kopia.ipynb
 .agents
 .codex
 __pycache__/
+.claude
