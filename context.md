@@ -51,4 +51,6 @@ FEATURE_IMPORTANCE=notebook 05; GB+OSF; impurity(final model) + permutation(per 
 REDUCED_SET=notebook 05; GB+OSF minus Torque minus ProcessTemp (7 features); X_test identical to 9-feature model (precision 0.9825, recall 0.8485, FP 1, FN 10; PR-AUC 0.9368 vs 0.9357); CV slightly lower (F1 0.8900 vs 0.8954) but within fold std; reduced set is a candidate for the final model.
 TEMPERATURE_NOTE=absolute ProcessTemp carries no signal (class means 310.27 vs 310.00, corr with target 0.033); failure signal is the gradient TempDiff (9.38 vs 10.02, corr -0.114, HDF band 7.6-8.6); ProcessTemp=ambient+~10K so absolute level tracks ambient drift; conclusion is dataset-specific redundancy given TempDiff, not general unimportance of temperature.
 
-NEXT=choose threshold using explicit FP/FN costs (in progress in notebook 05); decide 9-feature vs reduced 7-feature final set; validate on future/external data.
+FINAL_MODEL=python/final_model.py; GB(random_state=42); 7 features (no raw Torque, no ProcessTemp); OOF cost thresholds: 1x->0.60, 5-10x->0.30, 20x->0.15, 30-50x->0.05; recommendation 0.30 for 5-10x (X_test: precision 0.892, recall 0.879, FP 7, FN 8), 0.5 for precision-first (0.983/0.848, FP 1, FN 10); artifact=models/final_model.joblib (model+scaler+features+per-ratio thresholds).
+
+NEXT=obtain real FP/FN business costs and fix the threshold; validate on future/external data; probability calibration; drift monitoring.

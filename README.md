@@ -111,6 +111,18 @@ These numbers come from the development set, which was already used during
 exploration and feature design — treat them as a development check, not as
 untouched final validation (see the limitations below).
 
+### Final model
+
+`python/final_model.py` trains and saves the selected configuration
+(`models/final_model.joblib`): Gradient Boosting on a reduced 7-feature set
+(raw `Torque [Nm]` and `Process temperature [K]` removed as redundant).
+The decision threshold depends on the assumed cost ratio of missed
+failures to false alarms — the out-of-fold cost analysis in
+`results/final_threshold_costs.csv` recommends `0.30` when a missed
+failure costs 5–10× more than an unnecessary inspection (development
+check: precision 0.892, recall 0.879), while the default `0.5` maximises
+precision (0.983 at recall 0.848).
+
 ## Important limitations
 
 The current 2,000-record test split has already been used for model comparison and error analysis, so it should be treated as a development set rather than an untouched final test set. Further experiments should use cross-validation and, eventually, a separate final test set.

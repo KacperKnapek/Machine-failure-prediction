@@ -1,5 +1,32 @@
 # PROJECT_CONTEXT.md
 
+## Update 2026-07-19 - final model decision
+
+`python/final_model.py` closes the model-selection phase:
+
+- **Model:** `GradientBoostingClassifier(random_state=42)`.
+- **Features (7):** Type_L, Type_M, Temperature difference, Rotational
+  speed, Power, Tool wear, OSF criterion (raw Torque and Process
+  temperature removed as redundant).
+- **Threshold:** chosen from OOF cost analysis
+  (`results/final_threshold_costs.csv`); the optimum is highly sensitive
+  to the FN:FP cost ratio:
+
+  ```text
+  1x -> 0.60 | 5-10x -> 0.30 | 20x -> 0.15 | 30-50x -> 0.05
+  ```
+
+  Working recommendation: 0.30 for a typical 5-10x maintenance setting
+  (X_test check: precision 0.892, recall 0.879, FP 7, FN 8); 0.5 when
+  false alarms are the binding constraint (precision 0.983, recall
+  0.848, FP 1, FN 10). Final choice requires real business costs.
+- **Artifacts:** `models/final_model.joblib` (model + scaler + features +
+  per-ratio thresholds), `results/final_model_summary.csv`.
+- The tool-wear warning (>= 200 min) stays as a complementary alert layer.
+
+Open items: validation on untouched/future data, probability calibration,
+drift monitoring after deployment.
+
 ## Update 2026-07-19 - reduced feature set and temperature analysis (notebook 05)
 
 Controlled experiment removing both near-zero features flagged by the
