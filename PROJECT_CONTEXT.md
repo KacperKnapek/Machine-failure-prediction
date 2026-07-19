@@ -161,12 +161,36 @@ Dzisiejsze zmiany obejmuja commity `956551a`, `c8d55bb` i `ae5cdef`. Aktualny HE
 
 Stały kontekst projektu predykcji awarii maszyn. Przed pracą z repozytorium należy przeczytać ten plik, a następnie odpowiednie notebooki i pliki wynikowe.
 
-**Ostatni przegląd:** 2026-07-16  
-**Przejrzany commit `main`:** `ae5cdefb3779bc63193f67ada5a3461d20b385df`
+**Ostatni przegląd:** 2026-07-19
+**Przejrzany commit `main`:** `e553131` ("gitignore")
+
+Sekcje 0–11 poniżej opisują stan projektu na 2026-07-16 i pozostają jako
+punkt odniesienia dla historii metodologii. Etap wyboru modelu został od
+tego czasu **zamknięty** — patrz sekcje "Update 2026-07-19" powyżej.
+Aktualny stan w skrócie:
+
+```text
+Model:      GradientBoostingClassifier(random_state=42)
+Cechy (7):  Type_L, Type_M, Temperature difference, Rotational speed,
+            Power, Tool wear, OSF criterion
+            (Torque i Process temperature usunięte jako redundantne)
+Próg:       zależny od kosztów FN:FP, patrz results/final_threshold_costs.csv
+            1x -> 0.60 | 5-10x -> 0.30 | 20x -> 0.15 | 30-50x -> 0.05
+Artefakty:  models/final_model.joblib, results/final_model_summary.csv
+Otwarte:    realne koszty biznesowe do wyboru progu, walidacja na
+            nietkniętych/przyszłych danych, kalibracja prawdopodobieństw,
+            monitoring dryfu po wdrożeniu
+```
+
+Sekcje 5, 9 i 10 poniżej (bazowy model 8-cechowy, próg 0.5, lista zadań)
+są **historyczne** — opisują stan przed eksperymentem OSF i wyborem
+modelu finalnego. Nie traktować ich jako aktualnej rekomendacji modelu
+ani listy otwartych zadań; aktualną listę otwartych zadań patrz wyżej
+("Otwarte").
 
 ---
 
-## 0. Aktualny status
+## 0. Aktualny status (stan na 2026-07-16, historyczny)
 
 Po zmianach z 2026-07-14 pipeline bazowy jest ponownie odtwarzalny i znacznie lepiej uporządkowany.
 
@@ -262,7 +286,7 @@ liczba false positives
 
 ---
 
-## 2. Struktura repozytorium
+## 2. Struktura repozytorium (stan historyczny 2026-07-16 — patrz niżej aktualna)
 
 ```text
 PROJECT_CONTEXT.md
@@ -293,13 +317,51 @@ results/false_negatives_baseline.csv
 results/false_positives_baseline.csv
 ```
 
-Do utworzenia lub rozbudowy:
+### 2.1. Aktualna struktura (2026-07-19)
 
 ```text
-reports/
+PROJECT_CONTEXT.md
+context.md            (zwięzłe, maszynowo czytelne podsumowanie)
+README.md
 requirements.txt
-pełny README.md
+.gitignore
+
+data/raw/produkcja.csv
+data/processed/{produkcja_clean, X_train_raw, X_test_raw,
+                X_train_scaled, X_test_scaled, y_train, y_test}.csv
+
+notebooks/01_eda.ipynb
+notebooks/02_data_cleaning.ipynb
+notebooks/03_data_preparation.ipynb
+notebooks/04_modeling.ipynb
+notebooks/05_feature_experiment.ipynb   (OSF, redukcja cech, importance)
+
+python/cleaning.py
+python/data_preparation.py
+python/features.py           (add_osf_criterion)
+python/evaluation.py          (prepare_fold_data, get_metrics,
+                                cross_validate, summarize_fold_metrics,
+                                evaluate_thresholds, get_threshold_ties)
+python/visualization.py       (plot_confusion_matrix_grid,
+                                plot_threshold_analysis)
+python/sensitivity_analysis.py
+python/final_model.py         (zamyka wybór modelu finalnego)
+
+models/final_model.joblib
+
+results/model_results_baseline.csv
+results/false_negatives_baseline.csv
+results/false_positives_baseline.csv
+results/sensitivity_target_correction.csv
+results/final_threshold_costs.csv
+results/final_model_summary.csv
+
+reports/figures/
 ```
+
+Uwaga: `notebooks/01_eda — kopia.ipynb` i `notebooks/experiment.ipynb`
+istnieją w repozytorium jako pliki robocze/kopie, poza opisanym wyżej
+głównym przepływem.
 
 ---
 
@@ -747,20 +809,31 @@ Threshold tuning wykonać dopiero po wyborze modelu i zestawu cech. Próg dobier
 
 ---
 
-## 10. Zalecane następne zadania
+## 10. Zalecane następne zadania (lista historyczna 2026-07-16 — wszystkie ukończone)
 
-1. Ujednolicić nazwy modeli w notebooku i CSV.
-2. Dodać kontrolę, która jawnie raportuje rekordy z `probability == threshold`.
-3. Zdecydować, czy konwencja ma być `>= threshold`, czy zgodna z `model.predict()`; potem stosować ją wszędzie.
-4. Przywrócić surowe kolumny do `false_positives_baseline.csv` albo zapisać osobny pełny raport.
-5. Zaokrąglać kopie raportowe prawdopodobieństw, pozostawiając pełną precyzję w obliczeniach.
-6. Usunąć `PROJECT_CONTEXT.md` z `.gitignore`.
-7. Dodać `requirements.txt`.
-8. Rozbudować README o uruchamianie pipeline i najważniejsze wyniki.
-9. Przenieść powtarzalne funkcje do skryptów w `python/` lub `src/`.
-10. Wykonać eksperyment z `Kryterium_OSF` przy użyciu walidacji krzyżowej.
-11. Dopiero potem wykonać threshold tuning.
-12. W przyszłości wykonać sensitivity analysis dla 330 i 339 awarii.
+1. ~~Ujednolicić nazwy modeli w notebooku i CSV.~~ Zrobione.
+2. ~~Dodać kontrolę, która jawnie raportuje rekordy z `probability == threshold`.~~ Zrobione (`evaluation.get_threshold_ties`).
+3. ~~Zdecydować, czy konwencja ma być `>= threshold`~~. Ustalone: `>= threshold`.
+4. ~~Przywrócić surowe kolumny do `false_positives_baseline.csv`~~. Zrobione.
+5. ~~Zaokrąglać kopie raportowe prawdopodobieństw~~. Zrobione (4 miejsca).
+6. ~~Usunąć `PROJECT_CONTEXT.md` z `.gitignore`.~~ Zrobione.
+7. ~~Dodać `requirements.txt`.~~ Zrobione.
+8. ~~Rozbudować README o uruchamianie pipeline i najważniejsze wyniki.~~ Zrobione.
+9. ~~Przenieść powtarzalne funkcje do skryptów w `python/`.~~ Zrobione (`features.py`, `evaluation.py`, `visualization.py`).
+10. ~~Wykonać eksperyment z `Kryterium_OSF` przy użyciu walidacji krzyżowej.~~ Zrobione (`notebooks/05_feature_experiment.ipynb`).
+11. ~~Threshold tuning.~~ Zrobione (`python/final_model.py`, koszt-zależne progi).
+12. ~~Sensitivity analysis dla 330 i 339 awarii.~~ Zrobione (`python/sensitivity_analysis.py`).
+
+### 10.1. Aktualne otwarte zadania (2026-07-19)
+
+1. Ustalić realne koszty biznesowe FN:FP i wybrać ostateczny próg decyzyjny
+   (patrz `results/final_threshold_costs.csv`).
+2. Walidacja modelu finalnego na nietkniętym/przyszłym zbiorze danych
+   (obecny `X_test` był używany podczas eksploracji i projektowania cech).
+3. Kalibracja prawdopodobieństw.
+4. Monitoring dryfu po wdrożeniu.
+5. Uporządkować pliki robocze w `notebooks/` (`01_eda — kopia.ipynb`,
+   `experiment.ipynb`) — zdecydować, czy zostają, czy są usuwane.
 
 ---
 
