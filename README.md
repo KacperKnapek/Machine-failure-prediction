@@ -28,7 +28,7 @@ python -m pip install -r requirements.txt
 ## Dataset
 
 The AI4I 2020 preventive-maintenance dataset is included in `data/raw/`. If you need the original source, it's available at:
-https://archive.ics.uci.edu/ml/datasets/ai4i+2020+preventive+maintenance
+https://archive.ics.uci.edu/dataset/601/ai4i+2020+predictive+maintenance+dataset
 
 ## Run the data pipeline
 
