@@ -1,0 +1,42 @@
+PROJECT=AI4I2020 binary machine failure prediction.
+STATUS=baseline reproducible.
+LANG=python sklearn pandas.
+
+DATA=10000 rows; target=Machine failure; positives=330 after correcting 9 inconsistent labels.
+SPLIT=train_test_split(test_size=0.2,stratify=y,random_state=42).
+
+FEATURES=Type_L,Type_M,ProcessTemp,TempDiff,RPM,Torque,Power,ToolWear.
+ENGINEERING=Power=rpm*torque*2*pi/60; TempDiff=Process-Air.
+DROP=UDI,ProductID,TWF,HDF,PWF,OSF,RNF,record_index.
+NO_LEAKAGE=never use failure flags.
+
+PIPELINE=cleaning.py->data_preparation.py->EDA->modeling.
+OUTPUT=X_train_raw,X_test_raw,X_train_scaled,X_test_scaled,y_train,y_test.
+INDEX=record_index only for joins.
+
+SCALER=StandardScaler fit(train) transform(train,test) numeric only.
+MODELS=Dummy,LogReg(balanced),RandomForest(200,balanced),GradientBoosting.
+THRESHOLD=0.5.
+PRIMARY_METRICS=PR-AUC,F1,Recall,Precision,ROC-AUC,FN,FP; accuracy secondary.
+
+BASELINE=RF recall≈0.83 precision≈0.85 ROC≈0.991; GB precision≈0.88 recall≈0.79 ROC≈0.994; LR high recall low precision.
+
+NEXT=cv,tuning,threshold optimization,error analysis,feature engineering,calibration,SHAP,final evaluation.
+
+RULES=keep reproducible; no leakage; keep record_index; compare models on same split; document every experiment.
+
+EXPERIMENT_NOTEBOOK=notebooks/05_feature_experiment.ipynb.
+EXPERIMENT=compare baseline vs baseline+OSF using 5-fold StratifiedKFold on training data.
+OSF_FEATURE=Tool wear [min] * Torque [Nm].
+CV_SCALING=fit StandardScaler inside each fold on numeric train columns only.
+OOF=out-of-fold probabilities are used for threshold analysis and confusion matrices.
+THRESHOLDS=test 0.20,0.30,0.40,0.50,0.60,0.70,0.80; default decision remains >=0.5.
+COST_ANALYSIS=compare FP/FN costs with example scenarios; business costs not yet known.
+
+BEST_CURRENT=GradientBoosting + OSF at threshold 0.5.
+X_TEST_RESULT=precision 0.9825; recall 0.8485; F1 0.9106; ROC-AUC 0.9953; PR-AUC 0.9357; FP 1; FN 10.
+X_TEST_CM=[[1933,1],[10,56]].
+TEST_CAVEAT=X_test was used during exploration and OSF design; treat this as a development check, not untouched external validation.
+FOLD5_NOTE=GB+OSF fold 5 had precision 1.0 and recall 0.6981 with [[1547,0],[16,37]]; similar recall degradation in RF suggests a harder fold.
+
+NEXT=inspect 10 X_test FN; choose threshold using explicit FP/FN costs; inspect feature importance; consolidate OOF helpers; validate on future/external data.
