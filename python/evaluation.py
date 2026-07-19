@@ -122,7 +122,12 @@ def summarize_fold_metrics(fold_metrics_df: pd.DataFrame) -> dict:
 def evaluate_thresholds(
     y_true: pd.Series, y_proba: pd.Series, thresholds
 ) -> pd.DataFrame:
-    """Evaluate the decision rule ``proba >= threshold`` for each threshold."""
+    """Evaluate the decision rule ``proba >= threshold`` for each threshold.
+
+    The ``ties`` column explicitly reports records whose probability equals
+    the threshold; under the project convention they are classified as
+    failures.
+    """
     rows = []
     for threshold in thresholds:
         y_pred = (y_proba >= threshold).astype(int)
@@ -133,5 +138,19 @@ def evaluate_thresholds(
             "f1": f1_score(y_true, y_pred, zero_division=0),
             "false_positives": ((y_true == 0) & (y_pred == 1)).sum(),
             "false_negatives": ((y_true == 1) & (y_pred == 0)).sum(),
+            "ties": (y_proba == threshold).sum(),
         })
     return pd.DataFrame(rows)
+
+
+def get_threshold_ties(
+    y_proba: pd.Series, threshold: float = DECISION_THRESHOLD
+) -> pd.Series:
+    """Return records whose probability is exactly equal to the threshold.
+
+    These records land on the decision boundary; the project convention
+    ``probability >= threshold -> class 1`` classifies them as failures
+    (e.g. record 5653 for the Random Forest baseline). Report them
+    explicitly before any threshold tuning.
+    """
+    return y_proba[y_proba == threshold]

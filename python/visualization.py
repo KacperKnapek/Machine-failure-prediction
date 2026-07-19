@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from sklearn.metrics import ConfusionMatrixDisplay
 
 
-def plot_confusion_matrix_grid(matrices: dict) -> plt.Figure:
+def plot_confusion_matrix_grid(matrices: dict) -> Figure:
     """Plot a grid of confusion matrices.
 
     ``matrices`` maps a row label (e.g. feature variant) to an inner dict
@@ -37,7 +38,7 @@ def plot_threshold_analysis(
     threshold_results,
     feature_variant: str,
     model_names,
-) -> plt.Figure:
+) -> Figure:
     """Plot metrics and error counts against the decision threshold.
 
     ``threshold_results`` is the long-format table produced with
