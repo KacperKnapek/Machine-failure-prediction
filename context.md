@@ -46,4 +46,6 @@ SENSITIVITY=python/sensitivity_analysis.py compares corrected(330) vs uncorrecte
 TIES_CONTROL=evaluation.get_threshold_ties + ties column in evaluate_thresholds; notebook 04 prints proba==threshold records (RF: 5653).
 EXPORTS=false_positives_baseline.csv includes raw feature columns again; report probabilities rounded to 4 decimals, computations keep full precision.
 
-NEXT=choose threshold using explicit FP/FN costs (in progress in notebook 05); inspect feature importance; validate on future/external data.
+FEATURE_IMPORTANCE=notebook 05; GB+OSF; impurity(final model) + permutation(per CV fold, PR-AUC, n_repeats=10); top group=Power,TempDiff,RPM,OSF; OSF confirmed real signal (impurity 0.2437, permutation 0.2267±0.0475); raw Torque~0 and ProcessTemp~0 (removal candidate); correlated features caveat=read ranking as a group.
+
+NEXT=choose threshold using explicit FP/FN costs (in progress in notebook 05); test removing Process temperature; validate on future/external data.

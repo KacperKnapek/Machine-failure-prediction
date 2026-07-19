@@ -1,5 +1,30 @@
 # PROJECT_CONTEXT.md
 
+## Update 2026-07-19 - feature importance (notebook 05)
+
+Notebook 05 gained a feature-importance section for the final Gradient
+Boosting + OSF model: built-in impurity importances of the final model and
+permutation importance computed per CV fold on the validation part only
+(PR-AUC scoring, `n_repeats=10`, `random_state=42`).
+
+```text
+impurity:    TempDiff 0.3465, Power 0.2770, OSF 0.2437, rpm 0.0598, ToolWear 0.0359, Torque 0.0110, ProcessTemp 0.0078
+permutation: Power 0.4252±0.0883, rpm 0.3245±0.0285, TempDiff 0.2911±0.0197, OSF 0.2267±0.0475, ToolWear 0.0637±0.0396, Torque 0.0037, ProcessTemp -0.0016
+```
+
+Conclusions:
+
+- The OSF criterion carries real signal in both views and stays in the
+  final feature set.
+- Raw Torque contributes almost nothing (consistent with the
+  remove-Torque experiment); Process temperature is a removal candidate
+  for a controlled follow-up experiment.
+- With correlated features (Power = rpm * torque * 2*pi/60) the ranking
+  should be read as a group, not as exact per-feature values.
+
+The notebook was re-executed end to end; the final X_test metrics
+reproduced exactly (precision 0.9825, recall 0.8485, FP 1, FN 10).
+
 ## Update 2026-07-19 - task audit and remaining section 10 items
 
 Audit of section 10: tasks 1, 3, 6, 7, 9, 10 were already done; task 11
