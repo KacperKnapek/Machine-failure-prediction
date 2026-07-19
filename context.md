@@ -48,4 +48,7 @@ EXPORTS=false_positives_baseline.csv includes raw feature columns again; report 
 
 FEATURE_IMPORTANCE=notebook 05; GB+OSF; impurity(final model) + permutation(per CV fold, PR-AUC, n_repeats=10); top group=Power,TempDiff,RPM,OSF; OSF confirmed real signal (impurity 0.2437, permutation 0.2267±0.0475); raw Torque~0 and ProcessTemp~0 (removal candidate); correlated features caveat=read ranking as a group.
 
-NEXT=choose threshold using explicit FP/FN costs (in progress in notebook 05); test removing Process temperature; validate on future/external data.
+REDUCED_SET=notebook 05; GB+OSF minus Torque minus ProcessTemp (7 features); X_test identical to 9-feature model (precision 0.9825, recall 0.8485, FP 1, FN 10; PR-AUC 0.9368 vs 0.9357); CV slightly lower (F1 0.8900 vs 0.8954) but within fold std; reduced set is a candidate for the final model.
+TEMPERATURE_NOTE=absolute ProcessTemp carries no signal (class means 310.27 vs 310.00, corr with target 0.033); failure signal is the gradient TempDiff (9.38 vs 10.02, corr -0.114, HDF band 7.6-8.6); ProcessTemp=ambient+~10K so absolute level tracks ambient drift; conclusion is dataset-specific redundancy given TempDiff, not general unimportance of temperature.
+
+NEXT=choose threshold using explicit FP/FN costs (in progress in notebook 05); decide 9-feature vs reduced 7-feature final set; validate on future/external data.

@@ -1,5 +1,29 @@
 # PROJECT_CONTEXT.md
 
+## Update 2026-07-19 - reduced feature set and temperature analysis (notebook 05)
+
+Controlled experiment removing both near-zero features flagged by the
+importance analysis (`Torque [Nm]`, `Process temperature [K]`):
+
+```text
+CV (GB, 5-fold):  9 features F1 0.8954, PR-AUC 0.9258 | 7 features F1 0.8900, PR-AUC 0.9154 (within fold std)
+X_test:           identical outcome for both sets: precision 0.9825, recall 0.8485, F1 0.9106, FP 1, FN 10
+                  (PR-AUC 0.9368 for 7 features vs 0.9357 for 9)
+```
+
+The 7-feature reduced set is a candidate for the final model — no
+measurable loss on the development check with fewer inputs to monitor.
+
+Why absolute process temperature carries no signal (documented with class
+distributions in the notebook): failures and non-failures have nearly the
+same absolute process temperature (means 310.27 vs 310.00 K, correlation
+with the target 0.033), while `Temperature difference` separates them
+(9.38 vs 10.02 K, correlation -0.114; HDF band 7.6-8.6 K). In this data
+the process temperature is ambient plus roughly 10 K, so the absolute
+level tracks ambient drift; the condition signal is the gradient. The
+conclusion is redundancy given `Temperature difference` in this dataset,
+not general unimportance of temperature.
+
 ## Update 2026-07-19 - feature importance (notebook 05)
 
 Notebook 05 gained a feature-importance section for the final Gradient
