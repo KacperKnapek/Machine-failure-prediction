@@ -1,5 +1,16 @@
 # PROJECT_CONTEXT.md
 
+## Update 2026-07-19 - housekeeping
+
+- Model naming is unified: `Logistic Regression` everywhere (the `Log Reg` inconsistency from section 0 no longer exists).
+- `PROJECT_CONTEXT.md` was removed from `.gitignore` (task 10.6 done); `context.md` (compact machine-readable summary) is now tracked.
+- Reusable helpers were extracted from `notebooks/05_feature_experiment.ipynb` (task 10.9 and "consolidate OOF helpers" done):
+  - `python/features.py` — `add_osf_criterion`,
+  - `python/evaluation.py` — `prepare_fold_data`, `get_metrics`, `cross_validate`, `summarize_fold_metrics`, `evaluate_thresholds`,
+  - `python/visualization.py` — `plot_confusion_matrix_grid`, `plot_threshold_analysis`.
+- `cross_validate` consolidates the three notebook fold loops into one training pass per fold and returns both per-fold metrics and out-of-fold probabilities. It was verified to produce bit-identical results to the original notebook functions and to reproduce the documented GB+OSF fold 5 result (`[[1547, 0], [16, 37]]`).
+- Notebook 05 keeps its own inline copies as a historical record; new notebooks should import from `python/` instead.
+
 ## Update 2026-07-19 - OSF feature experiment
 
 The separate notebook `notebooks/05_feature_experiment.ipynb` now compares the baseline feature set with the baseline plus:

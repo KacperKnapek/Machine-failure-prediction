@@ -39,4 +39,7 @@ X_TEST_CM=[[1933,1],[10,56]].
 TEST_CAVEAT=X_test was used during exploration and OSF design; treat this as a development check, not untouched external validation.
 FOLD5_NOTE=GB+OSF fold 5 had precision 1.0 and recall 0.6981 with [[1547,0],[16,37]]; similar recall degradation in RF suggests a harder fold.
 
-NEXT=inspect 10 X_test FN; choose threshold using explicit FP/FN costs; inspect feature importance; consolidate OOF helpers; validate on future/external data.
+HELPERS=python/features.py(add_osf_criterion);python/evaluation.py(prepare_fold_data,get_metrics,cross_validate,summarize_fold_metrics,evaluate_thresholds);python/visualization.py(plot_confusion_matrix_grid,plot_threshold_analysis).
+HELPERS_NOTE=cross_validate returns fold metrics + OOF probabilities from one training pass per fold; verified bit-identical to notebook 05 loops and to documented GB+OSF fold5 result.
+
+NEXT=inspect 10 X_test FN; choose threshold using explicit FP/FN costs; inspect feature importance; validate on future/external data.
