@@ -19,10 +19,19 @@ FAILURE_FLAGS = ["TWF", "HDF", "PWF", "OSF", "RNF"]
 DROP_COLUMNS = ["UDI", "Product ID", "Air temperature [K]", *FAILURE_FLAGS]
 
 
-def prepare_dataset(input_path: str | Path, output_path: str | Path) -> pd.DataFrame:
-    """Create the modelling table from the raw CSV and save it to disk."""
+def prepare_dataset(
+    input_path: str | Path,
+    output_path: str | Path | None = None,
+    correct_inconsistent_labels: bool = True,
+) -> pd.DataFrame:
+    """Create the modelling table from the raw CSV and optionally save it.
+
+    ``correct_inconsistent_labels`` controls the project assumption that the
+    nine records with ``Machine failure = 1`` but all failure flags equal to
+    zero are labelling errors; pass ``False`` to keep the original labels
+    (sensitivity analysis).
+    """
     input_path = Path(input_path)
-    output_path = Path(output_path)
     df = pd.read_csv(input_path)
 
     missing = REQUIRED_COLUMNS - set(df.columns)
@@ -39,11 +48,12 @@ def prepare_dataset(input_path: str | Path, output_path: str | Path) -> pd.DataF
         * (2 * np.pi / 60)
     ).round(2)
 
-    unknown_failure_type = (
-        df[FAILURE_FLAGS].sum(axis=1).eq(0)
-        & df["Machine failure"].eq(1)
-    )
-    df.loc[unknown_failure_type, "Machine failure"] = 0
+    if correct_inconsistent_labels:
+        unknown_failure_type = (
+            df[FAILURE_FLAGS].sum(axis=1).eq(0)
+            & df["Machine failure"].eq(1)
+        )
+        df.loc[unknown_failure_type, "Machine failure"] = 0
 
     df = df.drop(columns=DROP_COLUMNS)
     df = pd.get_dummies(df, columns=["Type"], drop_first=True, dtype=int)
@@ -63,8 +73,10 @@ def prepare_dataset(input_path: str | Path, output_path: str | Path) -> pd.DataF
     if df.isna().any().any():
         raise ValueError("Prepared dataset contains missing values")
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(output_path, index=False)
+    if output_path is not None:
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(output_path, index=False)
     return df
 
 

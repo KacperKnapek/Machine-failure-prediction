@@ -89,6 +89,28 @@ The current baseline uses `probability >= 0.5` for predicting class `1`. This ca
 **Results:**
 Baseline metrics and error analyses are exported to `results/`.
 
+## Key results
+
+Baseline models on the 2,000-record development set (decision threshold 0.5):
+
+| Model | Precision | Recall | F1 | ROC-AUC | PR-AUC | FP | FN |
+|---|---|---|---|---|---|---|---|
+| Dummy Classifier | 0.000 | 0.000 | 0.000 | 0.500 | 0.033 | 0 | 66 |
+| Logistic Regression | 0.160 | 0.848 | 0.269 | 0.920 | 0.419 | 295 | 10 |
+| Random Forest | 0.846 | 0.833 | 0.840 | 0.991 | 0.893 | 10 | 11 |
+| Gradient Boosting | 0.881 | 0.788 | 0.832 | 0.994 | 0.915 | 7 | 14 |
+
+The best current variant (notebook `05_feature_experiment.ipynb`) adds the
+engineered `OSF criterion = Tool wear [min] * Torque [Nm]` feature:
+
+| Model | Precision | Recall | F1 | ROC-AUC | PR-AUC | FP | FN |
+|---|---|---|---|---|---|---|---|
+| Gradient Boosting + OSF criterion | 0.983 | 0.848 | 0.911 | 0.995 | 0.936 | 1 | 10 |
+
+These numbers come from the development set, which was already used during
+exploration and feature design — treat them as a development check, not as
+untouched final validation (see the limitations below).
+
 ## Important limitations
 
 The current 2,000-record test split has already been used for model comparison and error analysis, so it should be treated as a development set rather than an untouched final test set. Further experiments should use cross-validation and, eventually, a separate final test set.

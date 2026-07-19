@@ -42,4 +42,8 @@ FOLD5_NOTE=GB+OSF fold 5 had precision 1.0 and recall 0.6981 with [[1547,0],[16,
 HELPERS=python/features.py(add_osf_criterion);python/evaluation.py(prepare_fold_data,get_metrics,cross_validate,summarize_fold_metrics,evaluate_thresholds);python/visualization.py(plot_confusion_matrix_grid,plot_threshold_analysis).
 HELPERS_NOTE=cross_validate returns fold metrics + OOF probabilities from one training pass per fold; verified bit-identical to notebook 05 loops and to documented GB+OSF fold5 result.
 
-NEXT=inspect 10 X_test FN; choose threshold using explicit FP/FN costs; inspect feature importance; validate on future/external data.
+SENSITIVITY=python/sensitivity_analysis.py compares corrected(330) vs uncorrected(339) labels; 5-fold CV RF+GB on baseline+OSF; conclusion=differences within fold std, model ranking unchanged, correction not driving results; output=results/sensitivity_target_correction.csv.
+TIES_CONTROL=evaluation.get_threshold_ties + ties column in evaluate_thresholds; notebook 04 prints proba==threshold records (RF: 5653).
+EXPORTS=false_positives_baseline.csv includes raw feature columns again; report probabilities rounded to 4 decimals, computations keep full precision.
+
+NEXT=choose threshold using explicit FP/FN costs (in progress in notebook 05); inspect feature importance; validate on future/external data.

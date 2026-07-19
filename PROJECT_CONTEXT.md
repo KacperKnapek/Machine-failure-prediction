@@ -1,5 +1,46 @@
 # PROJECT_CONTEXT.md
 
+## Update 2026-07-19 - task audit and remaining section 10 items
+
+Audit of section 10: tasks 1, 3, 6, 7, 9, 10 were already done; task 11
+(threshold tuning from explicit costs) is in progress in notebook 05.
+The remaining tasks were completed today:
+
+- **10.2** — `evaluation.get_threshold_ties` and a `ties` column in
+  `evaluate_thresholds`; notebook 04 now explicitly prints records with
+  probability equal to the threshold (Random Forest: record 5653).
+- **10.4** — `false_positives_baseline.csv` regained the raw physical
+  feature columns and is self-sufficient again.
+- **10.5** — report copies of probabilities, margin and OSF_distance are
+  rounded to 4 decimals; computations keep full precision.
+- **10.8** — README gained a "Key results" section with the baseline table
+  and the GB + OSF development result, including the dev-set caveat.
+- **10.12** — sensitivity analysis of the 9-label correction
+  (`python/sensitivity_analysis.py`, results in
+  `results/sensitivity_target_correction.csv`). 5-fold CV of RF and GB on
+  baseline + OSF features under both label variants:
+
+  ```text
+  GB corrected   (330): precision 0.9651±0.0468, recall 0.8409±0.0860, f1 0.8954, roc_auc 0.9909, pr_auc 0.9258
+  GB uncorrected (339): precision 0.9574±0.0152, recall 0.8303±0.0237, f1 0.8893, roc_auc 0.9803, pr_auc 0.9083
+  RF corrected   (330): precision 0.8833±0.0608, recall 0.8525±0.0935, f1 0.8622, roc_auc 0.9891, pr_auc 0.9117
+  RF uncorrected (339): precision 0.9043±0.0248, recall 0.8339±0.0393, f1 0.8673, roc_auc 0.9757, pr_auc 0.8952
+  ```
+
+  Conclusion: keeping the original 339 labels slightly lowers ranking
+  metrics (the 9 unexplained failures behave like label noise) but the
+  differences stay within fold-to-fold variation and the model ranking is
+  unchanged. The 330-label correction is not driving the project results.
+
+Also fixed: notebook 04 `debug_df` now really skips the dummy model (the
+old check compared against the wrong key), and `visualization.py`
+annotates figures with `matplotlib.figure.Figure` instead of `plt.Figure`.
+Notebook 04 was re-executed end to end; `model_results_baseline.csv` is
+bit-identical and the FP/FN exports contain the same records and values.
+`cleaning.prepare_dataset` accepts `correct_inconsistent_labels` and an
+optional output path; default behaviour is unchanged (verified by
+regenerating `produkcja_clean.csv` bit-identically).
+
 ## Update 2026-07-19 - housekeeping
 
 - Model naming is unified: `Logistic Regression` everywhere (the `Log Reg` inconsistency from section 0 no longer exists).
@@ -476,7 +517,7 @@ Aktualny eksport:
 results/false_negatives_baseline.csv
 ```
 
-Plik zawiera prawdopodobieństwa bez zaokrąglania oraz surowe parametry fizyczne trudnych rekordów.
+Plik zawiera prawdopodobieństwa zaokrąglone do 4 miejsc (pełna precyzja pozostaje w obliczeniach) oraz surowe parametry fizyczne trudnych rekordów.
 
 ---
 
@@ -543,7 +584,7 @@ Interpretacja:
 - duży margin oznacza silny wzorzec przypominający awarię albo potencjalny problem etykiety,
 - false positive nie zawsze oznacza bezsensowną predykcję; może być sensownym alarmem przy konserwatywnej polityce utrzymania ruchu.
 
-Aktualny plik false positives zawiera prawdopodobieństwo, margin i flagi diagnostyczne, ale nie zawiera już pełnych surowych kolumn fizycznych. Do pełnej interpretacji należy połączyć go po `record_index` z `X_test_raw.csv` albo ponownie rozszerzyć eksport.
+Aktualny plik false positives zawiera prawdopodobieństwo, margin, flagi diagnostyczne oraz (od 2026-07-19) ponownie pełne surowe kolumny fizyczne; wartości raportowe są zaokrąglone do 4 miejsc.
 
 ---
 
