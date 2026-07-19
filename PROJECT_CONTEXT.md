@@ -1,5 +1,23 @@
 # PROJECT_CONTEXT.md
 
+## Update 2026-07-19 - OSF feature experiment
+
+The separate notebook `notebooks/05_feature_experiment.ipynb` now compares the baseline feature set with the baseline plus:
+
+```python
+OSF criterion = Tool wear [min] * Torque [Nm]
+```
+
+The experiment uses 5-fold `StratifiedKFold`, fold-local scaling, out-of-fold predictions, confusion matrices, threshold analysis, FP/FN inspection, cost scenarios, and fold-stability analysis. The shared decision rule remains `y_pred = (y_proba >= 0.5).astype(int)`.
+
+The best current variant is `Gradient Boosting + OSF criterion` at threshold `0.5`. On `X_test` it achieved precision `0.9825`, recall `0.8485`, F1 `0.9106`, ROC-AUC `0.9953`, PR-AUC `0.9357`, 1 false positive, and 10 false negatives. The confusion matrix was `[[1933, 1], [10, 56]]`.
+
+Compared with the previous Gradient Boosting baseline, false positives decreased from 7 to 1 and false negatives from 14 to 10. This is a strong development result, but `X_test` was already used during exploration and OSF design, so it is not a completely untouched final validation.
+
+Fold 5 was harder for several models. For Gradient Boosting + OSF it had precision `1.0`, recall `0.6981`, and confusion matrix `[[1547, 0], [16, 37]]`. Similar recall degradation for Random Forest suggests a harder fold rather than a problem specific to OSF or one model.
+
+Next: inspect the 10 test false negatives, choose a threshold using explicit FP/FN costs, consolidate the OOF helper functions, inspect feature importance, and validate on future or external data.
+
 ## Aktualizacja 2026-07-16
 
 Stan po dzisiejszych zmianach:
