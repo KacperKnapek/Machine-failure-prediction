@@ -34,6 +34,53 @@ Remaining open item: real FN:FP business costs to fix the threshold, and
 validation on genuinely untouched/future data — both need external
 input/data this project does not have yet.
 
+## Gotowość do wdrożenia i danych produkcyjnych (2026-07-20)
+
+Model finalny jest gotowy jako artefakt offline: można go wczytać z
+`models/final_model.joblib` i użyć do predykcji, pod warunkiem przygotowania
+wejścia zgodnego z zapisanym scalerem i listą cech. Nie oznacza to jeszcze,
+że model jest gotowy produkcyjnie ani że mamy gotową integrację Batch API lub
+REST API.
+
+### Dlaczego `X_test` nie wystarcza do walidacji przyszłej
+
+`X_test` pochodzi z tego samego historycznego zbioru co `X_train`. Jest to
+zbiór kontrolny dla obecnego eksperymentu, ale był dostępny podczas
+projektowania cech, progów i analiz. Nie pokazuje, jak model zachowa się po
+zmianie maszyn, operatorów, dostawców, warunków środowiskowych ani procesu.
+
+Prawdziwe dane przyszłe muszą powstać po zamknięciu decyzji modelowej i nie
+mogą być używane do kolejnych zmian cech lub progu przed zakończeniem oceny.
+Dopiero na takim zbiorze można sprawdzić, czy precision, recall, liczba FN i
+liczba FP utrzymują się poza danymi historycznymi.
+
+### Co należy zrobić przed wdrożeniem
+
+1. Ustalić z biznesem koszt FN i FP oraz zatwierdzić próg decyzyjny. Obecne
+   `0.30` jest rekomendacją roboczą, a nie uniwersalną wartością.
+2. Zebrać chronologiczny, przyszły zbiór produkcyjny z `record_index`, czasem
+   pomiaru, identyfikatorem maszyny lub linii oraz późniejszą informacją o
+   rzeczywistej awarii.
+3. Zamrozić model, scaler, listę cech, próg i wersję kodu. Wyniki przyszłej
+   walidacji zapisać osobno, bez nadpisywania obecnych raportów.
+4. Wykonać walidację czasową i ocenić precision, recall, F1, PR-AUC, FN, FP
+   oraz czas między alertem a awarią.
+5. Uruchomić `python/check_drift.py` z `X_train` jako referencją i nowym
+   batchem jako `current`. Obecne `X_train` vs `X_test` jest tylko testem
+   działania narzędzia, bo oba zbiory pochodzą z tego samego podziału.
+6. Ustalić reakcję na alarm dryfu: audyt danych, zmiana progu, kalibracja lub
+   ponowne trenowanie po potwierdzeniu zmiany procesu.
+
+### Znaczenie dla Batch/REST API
+
+Batch API wymaga uzgodnionej cyklicznej partii danych i procesu zapisującego
+predykcje, próg, wersję modelu oraz alerty. REST API wymaga kontraktu wejścia
+i wyjścia, walidacji danych, logowania i obsługi błędów.
+
+Techniczny prototyp możemy przygotować już teraz, ale jego wyniki będą
+demonstracyjne. Status produkcyjny wymaga przyszłych danych, zatwierdzonego
+progu biznesowego, monitoringu i testu end-to-end.
+
 ## Update 2026-07-19 - final model decision
 
 `python/final_model.py` closes the model-selection phase:
