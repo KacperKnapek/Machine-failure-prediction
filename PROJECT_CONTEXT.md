@@ -1,5 +1,39 @@
 # PROJECT_CONTEXT.md
 
+## Update 2026-07-20 - final evaluation notebook: calibration and drift-monitoring tool
+
+`notebooks/06_final_evaluation.ipynb` presents the closed final model
+(no retraining) and closes two of the three open items above:
+
+- **Probability distribution** (`python/plot_final_probabilities.py`):
+  histogram of predicted probability on X_test by true class. Classes are
+  strongly separated (non-failures near 0.0, failures near 1.0); very few
+  records fall between the 0.30/0.50 candidate thresholds.
+- **Calibration** (`python/plot_calibration.py`, `python/evaluation.get_calibration_data`):
+  reliability diagram (uniform bins) + Brier score on OOF-train
+  probabilities (same 5-fold CV as `final_model.py`) and on X_test.
+  Brier 0.0057 (OOF) / 0.0050 (X_test) — well calibrated overall. Dense
+  bins near 0 and 1 (thousands/hundreds of records) sit on the diagonal;
+  middle bins (0.2-0.8, where the decision thresholds sit) have only
+  3-15 records each, so the visible scatter there is small-sample noise,
+  not evidence of miscalibration. Marker area in the plot is scaled by
+  bin count to make this visible rather than misleading.
+- **Drift-monitoring tool** (`python/drift_monitoring.py`,
+  `python/check_drift.py`): PSI (numeric features, reference deciles;
+  bands <0.1 / 0.1-0.25 / >0.25) and proportion difference (Type_L,
+  Type_M binary features). No production data stream exists yet, so this
+  is a sanity check only: X_train (reference) vs X_test (current), both
+  from the same split, all PSI < 0.01 and no significant KS p-values —
+  confirms the metric works, not that there is no real-world drift.
+  Rerun `check_drift.py` with a real new batch as `current` once
+  production data exists; a PSI > 0.25 on a feature that matters to the
+  model (Power, rpm, Temperature difference, OSF criterion) is the
+  trigger to investigate.
+
+Remaining open item: real FN:FP business costs to fix the threshold, and
+validation on genuinely untouched/future data — both need external
+input/data this project does not have yet.
+
 ## Update 2026-07-19 - final model decision
 
 `python/final_model.py` closes the model-selection phase:

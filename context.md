@@ -53,4 +53,8 @@ TEMPERATURE_NOTE=absolute ProcessTemp carries no signal (class means 310.27 vs 3
 
 FINAL_MODEL=python/final_model.py; GB(random_state=42); 7 features (no raw Torque, no ProcessTemp); OOF cost thresholds: 1x->0.60, 5-10x->0.30, 20x->0.15, 30-50x->0.05; recommendation 0.30 for 5-10x (X_test: precision 0.892, recall 0.879, FP 7, FN 8), 0.5 for precision-first (0.983/0.848, FP 1, FN 10); artifact=models/final_model.joblib (model+scaler+features+per-ratio thresholds).
 
-NEXT=obtain real FP/FN business costs and fix the threshold; validate on future/external data; probability calibration; drift monitoring.
+CALIBRATION=notebooks/06_final_evaluation.ipynb; python/plot_calibration.py; reliability curve (uniform bins) + Brier score on OOF(train, same CV as final_model.py) and X_test; Brier 0.0057/0.0050; dense bins near 0/1 well calibrated; middle bins (0.2-0.8, where thresholds sit) have only 3-15 records each -> noisy, not evidence of miscalibration, just insufficient borderline data.
+
+DRIFT_TOOL=python/drift_monitoring.py(population_stability_index,compute_drift_report)+python/check_drift.py; PSI(numeric, reference deciles, <0.1/0.1-0.25/>0.25 bands)+proportion_diff(Type_L,Type_M); sanity check X_train vs X_test: all PSI<0.01, no significant KS p-values -> tool verified, but no production data yet so no real drift check performed; rerun check_drift.py with new batch as `current` when production data exists.
+
+NEXT=obtain real FP/FN business costs and fix the threshold; validate on future/external data; run drift_monitoring against real production data once it exists.

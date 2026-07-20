@@ -1,0 +1,10 @@
+feature,metric,value,ks_statistic,ks_pvalue
+Type_L,proportion_diff,-0.0144,0.0144,0.8927
+Type_M,proportion_diff,0.0016,0.0016,1.0
+Process temperature [K],psi,0.0082,0.0237,0.3245
+Temperature difference,psi,0.0023,0.0079,1.0
+Rotational speed [rpm],psi,0.0027,0.0169,0.7484
+Torque [Nm],psi,0.005,0.012,0.9741
+Power [W],psi,0.0033,0.0119,0.9766
+Tool wear [min],psi,0.006,0.024,0.3124
+OSF criterion,psi,0.0059,0.0264,0.2134

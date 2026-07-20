@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import pandas as pd
 from sklearn.base import clone
+from sklearn.calibration import calibration_curve
 from sklearn.metrics import (
     average_precision_score,
+    brier_score_loss,
     f1_score,
     precision_score,
     recall_score,
@@ -141,6 +143,35 @@ def evaluate_thresholds(
             "ties": (y_proba == threshold).sum(),
         })
     return pd.DataFrame(rows)
+
+
+def get_calibration_data(
+    y_true: pd.Series, y_proba: pd.Series, n_bins: int = 10
+) -> tuple[pd.DataFrame, float]:
+    """Return a reliability-diagram table and the Brier score.
+
+    Uses equal-width probability bins (``strategy="uniform"``); the
+    predicted probabilities in this project are strongly bimodal, so
+    quantile bins would collapse near 0 and 1 and hide the calibration
+    gap in the middle range where the decision thresholds sit.
+    """
+    fraction_positive, mean_predicted = calibration_curve(
+        y_true, y_proba, n_bins=n_bins, strategy="uniform"
+    )
+    bin_edges = pd.cut(y_proba, bins=n_bins, retbins=True)[1]
+    counts = pd.cut(y_proba, bins=bin_edges, include_lowest=True).value_counts(
+        sort=False
+    )
+    # calibration_curve silently drops empty bins, so align counts to the
+    # non-empty ones by recomputing which bins actually produced a point.
+    non_empty_counts = counts[counts > 0].to_numpy()
+
+    table = pd.DataFrame({
+        "mean_predicted": mean_predicted,
+        "fraction_positive": fraction_positive,
+        "count": non_empty_counts,
+    })
+    return table, brier_score_loss(y_true, y_proba)
 
 
 def get_threshold_ties(
