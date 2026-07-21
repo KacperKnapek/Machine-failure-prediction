@@ -1,0 +1,8 @@
+feature,importance
+Temperature difference,0.3523
+Power [W],0.2914
+OSF criterion,0.2434
+Rotational speed [rpm],0.0566
+Tool wear [min],0.0381
+Type_M,0.0099
+Type_L,0.0082

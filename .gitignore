@@ -6,3 +6,8 @@ notebooks/01_eda — kopia.ipynb
 .codex
 __pycache__/
 .claude
+
+# Internal working notes (LLM-oriented / Polish); not part of the public repo
+PROJECT_CONTEXT.md
+context.md
+notatka.md

@@ -1,97 +1,29 @@
-# Machine failure prediction
+# Predictive Maintenance — Machine Failure Prediction
 
-This project predicts whether a machine will fail (`0` = no failure, `1` = failure) using the AI4I 2020 predictive-maintenance dataset.
+End-to-end machine-learning project that predicts whether an industrial machine
+will fail (`0` = no failure, `1` = failure) from process telemetry, using the
+[AI4I 2020 Predictive Maintenance dataset](https://archive.ics.uci.edu/dataset/601/ai4i+2020+predictive+maintenance+dataset).
 
-## Project structure
+Failures are rare (~3.3% of records), so the project is treated as an
+**imbalanced binary classification** problem and is evaluated on precision,
+recall, F1 and PR-AUC rather than accuracy.
 
-- `data/raw/` — original dataset
-- `data/processed/` — cleaned data and train/test artifacts
-- `python/` — reusable data-cleaning and preparation scripts
-- `notebooks/` — exploratory analysis, preparation, and baseline modelling
-- `results/` — exported baseline metrics and error analyses
+## What this project demonstrates
 
-## Requirements
-
-- Python 3.9 or later
-- Dependencies listed in `requirements.txt`
-
-## Installation
-
-Create and activate a virtual environment, then install the dependencies:
-
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-```
-
-## Dataset
-
-The AI4I 2020 preventive-maintenance dataset is included in `data/raw/`. If you need the original source, it's available at:
-https://archive.ics.uci.edu/dataset/601/ai4i+2020+predictive+maintenance+dataset
-
-## Run the data pipeline
-
-From the project root, activate the virtual environment and run the pipeline:
-
-```powershell
-.venv\Scripts\Activate.ps1
-python python/cleaning.py
-python python/data_preparation.py
-```
-
-The pipeline creates six CSV files in `data/processed/`:
-- Raw and scaled features
-- Target labels
-- Original `record_index` for tracing predictions back to source records
-
-### Verify the setup
-
-After running the pipeline, check that these files exist in `data/processed/`:
-- `X_train_raw.csv` and `X_test_raw.csv`
-- `X_train_scaled.csv` and `X_test_scaled.csv`
-- `y_train.csv` and `y_test.csv`
-
-## Run the notebooks (exploratory analysis)
-
-For detailed exploration, visualization, and model evaluation, run the notebooks in this order:
-
-1. `01_eda.ipynb` — explore the raw data.
-2. `02_data_cleaning.ipynb` — inspect and document cleaning steps.
-3. `03_data_preparation.ipynb` — create and validate the train/test split.
-4. `04_modeling.ipynb` — train and evaluate baseline models.
-
-**Notes:**
-- The split uses `test_size=0.2`, `random_state=42`, and stratification to balance classes.
-- The `record_index` is preserved for tracing predictions back to source records and is never used as a model feature.
-- Notebooks `02_` and `03_` document the steps performed by the `cleaning.py` and `data_preparation.py` scripts.
-
-## Baseline models
-
-The baseline compares four models:
-
-- Dummy Classifier (baseline)
-- Logistic Regression
-- Random Forest
-- Gradient Boosting
-
-**Evaluation metrics:**
-Because failures are rare (imbalanced classes), the evaluation focuses on:
-- Precision, recall, F1-score
-- PR-AUC and ROC-AUC
-- Confusion matrices, false negatives, and false positives
-
-We do NOT rely on accuracy alone.
-
-**Decision threshold:**
-The current baseline uses `probability >= 0.5` for predicting class `1`. This can be adjusted based on the cost of false positives vs. false negatives in your maintenance workflow.
-
-**Results:**
-Baseline metrics and error analyses are exported to `results/`.
+- A full ML lifecycle: EDA → cleaning → reproducible preparation → baseline
+  modeling → controlled feature experiment → final model → calibration & drift
+  monitoring → a validated batch-inference boundary with tests.
+- Careful, leakage-free methodology: failure-subtype flags and identifiers are
+  never used as features, scaling is fit on the training data only, and the
+  decision threshold is chosen from out-of-fold cost analysis — never tuned on
+  the test set.
+- Reproducibility: a fixed, stratified split, a scriptable pipeline, and a
+  packaged model artifact (`models/final_model.joblib`) consumed by both the
+  notebooks and the production inference module.
 
 ## Key results
 
-Baseline models on the 2,000-record development set (decision threshold 0.5):
+Baseline models on the 2,000-record development split (decision threshold 0.5):
 
 | Model | Precision | Recall | F1 | ROC-AUC | PR-AUC | FP | FN |
 |---|---|---|---|---|---|---|---|
@@ -100,31 +32,188 @@ Baseline models on the 2,000-record development set (decision threshold 0.5):
 | Random Forest | 0.846 | 0.833 | 0.840 | 0.991 | 0.893 | 10 | 11 |
 | Gradient Boosting | 0.881 | 0.788 | 0.832 | 0.994 | 0.915 | 7 | 14 |
 
-The best current variant (notebook `05_feature_experiment.ipynb`) adds the
-engineered `OSF criterion = Tool wear [min] * Torque [Nm]` feature:
+Adding the engineered `OSF criterion = Tool wear [min] * Torque [Nm]` feature
+(notebook [`05_feature_experiment.ipynb`](notebooks/05_feature_experiment.ipynb))
+markedly improves the best model:
 
 | Model | Precision | Recall | F1 | ROC-AUC | PR-AUC | FP | FN |
 |---|---|---|---|---|---|---|---|
 | Gradient Boosting + OSF criterion | 0.983 | 0.848 | 0.911 | 0.995 | 0.936 | 1 | 10 |
 
-These numbers come from the development set, which was already used during
-exploration and feature design — treat them as a development check, not as
-untouched final validation (see the limitations below).
+> These figures come from the development split, which was already used during
+> exploration and feature design. They are a development check, not untouched
+> final validation — see [Limitations](#limitations-and-next-steps).
 
-### Final model
+## Final model
 
-`python/final_model.py` trains and saves the selected configuration
-(`models/final_model.joblib`): Gradient Boosting on a reduced 7-feature set
-(raw `Torque [Nm]` and `Process temperature [K]` removed as redundant).
-The decision threshold depends on the assumed cost ratio of missed
-failures to false alarms — the out-of-fold cost analysis in
-`results/final_threshold_costs.csv` recommends `0.30` when a missed
-failure costs 5–10× more than an unnecessary inspection (development
-check: precision 0.892, recall 0.879), while the default `0.5` maximises
-precision (0.983 at recall 0.848).
+[`python/final_model.py`](python/final_model.py) trains and saves the selected
+configuration to `models/final_model.joblib`:
 
-## Important limitations
+- **Model:** `GradientBoostingClassifier(random_state=42)`.
+- **Features (7):** `Type_L`, `Type_M`, `Temperature difference`,
+  `Rotational speed [rpm]`, `Power [W]`, `Tool wear [min]`, `OSF criterion`
+  (raw `Torque [Nm]` and `Process temperature [K]` were dropped as redundant —
+  the failure signal lives in `Temperature difference` and in `Power`/`OSF`).
+- **Threshold:** depends on the assumed cost ratio of a missed failure to a
+  false alarm. Out-of-fold cost analysis (`results/final_threshold_costs.csv`)
+  gives: `1x → 0.60`, `5–10x → 0.30`, `20x → 0.15`, `30–50x → 0.05`.
 
-The current 2,000-record test split has already been used for model comparison and error analysis, so it should be treated as a development set rather than an untouched final test set. Further experiments should use cross-validation and, eventually, a separate final test set.
+Development-split behaviour of the final model at two representative thresholds:
 
-The data contains a project-specific correction of nine records whose failure target conflicted with all available failure flags. This assumption should be tested later with a sensitivity analysis.
+| Threshold | Precision | Recall | F1 | FP | FN | Use when |
+|---|---|---|---|---|---|---|
+| 0.30 | 0.892 | 0.879 | 0.885 | 7 | 8 | missed failures cost 5–10× a false alarm |
+| 0.50 | 0.983 | 0.848 | 0.911 | 1 | 10 | false alarms are the binding constraint |
+
+Working recommendation: **0.30**. The final threshold should be fixed once real
+FP/FN business costs are known.
+
+## Repository structure
+
+```
+data/
+  raw/                original dataset (produkcja.csv)
+  processed/          cleaned data + train/test artifacts (raw & scaled) + target
+  test/               small fixtures for the batch-inference tests
+models/
+  final_model.joblib  model + scaler + feature list + per-cost-ratio thresholds
+python/                reusable, importable modules (see below)
+notebooks/             the analysis narrative, 01 → 07
+results/               exported metrics, error tables and figures
+tests/                 unit tests for the batch-inference boundary
+requirements.txt
+```
+
+### Python modules (`python/`)
+
+| Module | Purpose |
+|---|---|
+| `cleaning.py` | Load raw data, engineer features, correct inconsistent labels, write `produkcja_clean.csv`. |
+| `data_preparation.py` | Reproducible 80/20 stratified split, train-only scaling, save the six CSV artifacts. |
+| `features.py` | `add_osf_criterion` and other shared feature helpers. |
+| `evaluation.py` | Cross-validation, metrics, threshold analysis, out-of-fold probabilities. |
+| `visualization.py` | Confusion-matrix and threshold-analysis plots. |
+| `sensitivity_analysis.py` | Sensitivity of results to the 9-label correction (330 vs 339 positives). |
+| `final_model.py` | Train and serialize the final model artifact. |
+| `plot_final_probabilities.py`, `plot_calibration.py` | Final-evaluation figures. |
+| `drift_monitoring.py`, `check_drift.py` | PSI-based data-drift monitoring tool. |
+| `batch_inference.py` | Validated batch scoring: raw input → feature engineering → prediction report. |
+
+### Notebooks
+
+| Notebook | Content |
+|---|---|
+| [`01_eda.ipynb`](notebooks/01_eda.ipynb) | Exploratory analysis; failure mechanisms (TWF/HDF/PWF/OSF) and their parameter ranges. |
+| [`02_data_cleaning.ipynb`](notebooks/02_data_cleaning.ipynb) | Feature engineering, label correction, leakage-column removal, one-hot encoding. |
+| [`03_data_preparation.ipynb`](notebooks/03_data_preparation.ipynb) | Stratified split, train-only scaling, dataset validation and export. |
+| [`04_modeling.ipynb`](notebooks/04_modeling.ipynb) | Baseline models and false-positive / false-negative error analysis. |
+| [`05_feature_experiment.ipynb`](notebooks/05_feature_experiment.ipynb) | OSF-criterion experiment, feature importance, reduced feature set. |
+| [`06_final_evaluation.ipynb`](notebooks/06_final_evaluation.ipynb) | Probability distribution, calibration (Brier score) and drift-tool demonstration. |
+| [`07_batch_inference.ipynb`](notebooks/07_batch_inference.ipynb) | Demonstrates the reusable `batch_inference.py` boundary. |
+
+## Methodology notes
+
+- **No data leakage.** `TWF`, `HDF`, `PWF`, `OSF`, `RNF` (failure subtypes),
+  `UDI`, `Product ID` and `record_index` are excluded from the features.
+  `record_index` is kept only to trace predictions back to their source record.
+- **Engineered features.** `Power [W] = Rotational speed × Torque × 2π/60`,
+  `Temperature difference = Process − Air temperature`, and
+  `OSF criterion = Tool wear × Torque`.
+- **Label correction.** Nine records had `Machine failure = 1` while every
+  failure-subtype flag was 0; their parameters are unremarkable, so they are
+  treated as label noise and set to 0 (330 positives). A sensitivity analysis
+  confirms this correction does not drive the results.
+- **Imbalance.** Accuracy is reported but never used to compare models.
+
+## Installation
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+Python 3.9 or later is required.
+
+## Reproduce the pipeline
+
+From the project root, with the virtual environment activated:
+
+```powershell
+# 1. Clean the raw data and engineer features
+python python/cleaning.py
+
+# 2. Split, scale (train-only) and export the datasets
+python python/data_preparation.py
+
+# 3. Train and serialize the final model artifact
+python python/final_model.py
+```
+
+Step 2 writes six files to `data/processed/` — raw and scaled features,
+`y_train`/`y_test`, each keyed by `record_index`.
+
+## Figures
+
+All the important plots live as reusable functions in
+[`python/visualization.py`](python/visualization.py) (single source of truth for
+the notebooks) and are rendered to `results/` by dedicated runner scripts:
+
+```powershell
+python python/generate_figures.py          # EDA + final-model feature importance
+python python/plot_final_probabilities.py  # predicted-probability distribution
+python python/plot_calibration.py          # reliability diagram + Brier score
+python python/check_drift.py               # data-drift (PSI) report
+```
+
+`generate_figures.py` produces, in `results/`:
+
+| File | Plot |
+|---|---|
+| `eda_correlation_matrix.png` | Correlation of process parameters. |
+| `eda_failure_map.png` | Rotational speed vs Torque per machine type, failures in red. |
+| `eda_osf_criterion.png` | Tool wear × Torque with the empirical OSF boundary. |
+| `eda_twf_tool_wear.png` | Tool wear distribution split by the TWF flag. |
+| `eda_hdf_temperature_difference.png` | Temperature difference split by the HDF flag. |
+| `eda_pwf_power.png` | Power distribution split by the PWF flag. |
+| `final_model_feature_importance.png` / `.csv` | Impurity-based feature importance of the final model. |
+
+## Batch inference
+
+Score a batch of raw measurements with the final model. The module validates the
+input, recreates the training-time features, and writes a traceable report
+(probability, decision, threshold and a content-based model version):
+
+```powershell
+python python/batch_inference.py data/test/valid_input.csv results/batch_predictions.csv --threshold 0.30
+```
+
+Run the tests for the inference boundary:
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+## Calibration and drift monitoring
+
+- **Calibration** ([`06_final_evaluation.ipynb`](notebooks/06_final_evaluation.ipynb)):
+  reliability curve and Brier score on out-of-fold and test probabilities
+  (Brier ≈ 0.005) — the model is well calibrated at the dense extremes.
+- **Drift monitoring** (`python/check_drift.py`): Population Stability Index on
+  numeric features plus a proportion difference on the binary type features.
+  A PSI above 0.25 on a feature the model relies on (Power, rpm, Temperature
+  difference, OSF criterion) is the trigger to investigate. The tool has so far
+  only been sanity-checked on train vs test; it awaits real production data.
+
+## Limitations and next steps
+
+- The 2,000-record test split was used during model comparison and feature
+  design, so it is a **development set**, not an untouched final test set.
+  Genuine validation needs a future/held-out batch collected after the model
+  was frozen.
+- The final decision threshold is a working recommendation; fixing it requires
+  **real FP/FN business costs**.
+- Drift monitoring should be run against **real production data** once it exists.
+
+These remaining items depend on external input (business costs and future data)
+rather than on further modeling work.

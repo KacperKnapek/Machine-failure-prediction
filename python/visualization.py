@@ -3,9 +3,26 @@
 from __future__ import annotations
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import seaborn as sns
 from matplotlib.figure import Figure
 from sklearn.metrics import ConfusionMatrixDisplay
+
+NO_FAILURE_SCATTER = "lightgray"
+FAILURE_SCATTER = "red"
+
+DEFAULT_CORRELATION_COLUMNS = [
+    "Air temperature [K]",
+    "Process temperature [K]",
+    "Rotational speed [rpm]",
+    "Torque [Nm]",
+    "Tool wear [min]",
+    "Machine failure",
+    "Power [W]",
+    "Temperature difference",
+]
+OSF_THRESHOLD = 11003.2
 
 NO_FAILURE_COLOR = "#4C72B0"
 FAILURE_COLOR = "#DD8452"
@@ -67,7 +84,8 @@ def plot_probability_distribution(
 
     if thresholds:
         for label, threshold in thresholds.items():
-            ax.axvline(threshold, color=THRESHOLD_COLOR, linestyle="--", linewidth=1.5)
+            ax.axvline(threshold, color=THRESHOLD_COLOR,
+                       linestyle="--", linewidth=1.5)
             ax.text(
                 threshold, ax.get_ylim()[1] * 0.97, f" {label}",
                 color=THRESHOLD_COLOR, rotation=90, va="top", ha="left", fontsize=9,
@@ -95,7 +113,8 @@ def plot_calibration_curve(
     ``(table, brier_score)`` as returned by ``evaluation.get_calibration_data``.
     """
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.plot([0, 1], [0, 1], linestyle="--", color="gray", label="Perfectly calibrated")
+    ax.plot([0, 1], [0, 1], linestyle="--",
+            color="gray", label="Perfectly calibrated")
 
     colors = [NO_FAILURE_COLOR, FAILURE_COLOR, THRESHOLD_COLOR]
     for (label, (table, brier)), color in zip(calibration_tables.items(), colors):
@@ -150,8 +169,10 @@ def plot_drift_report(drift_report: pd.DataFrame) -> Figure:
             colors.append(DRIFT_CRITICAL_COLOR)
 
     ax.barh(drift_report.index, drift_report["value"], color=colors)
-    ax.axvline(PSI_MODERATE, color=DRIFT_WARNING_COLOR, linestyle="--", linewidth=1)
-    ax.axvline(PSI_SIGNIFICANT, color=DRIFT_CRITICAL_COLOR, linestyle="--", linewidth=1)
+    ax.axvline(PSI_MODERATE, color=DRIFT_WARNING_COLOR,
+               linestyle="--", linewidth=1)
+    ax.axvline(PSI_SIGNIFICANT, color=DRIFT_CRITICAL_COLOR,
+               linestyle="--", linewidth=1)
 
     ax.set(
         title="Feature drift: current vs reference (PSI; gray bars = proportion diff)",
@@ -216,5 +237,137 @@ def plot_threshold_analysis(
         ax.grid(alpha=0.3)
         ax.legend()
 
+    plt.tight_layout()
+    return fig
+
+
+def plot_correlation_matrix(
+    df: pd.DataFrame,
+    columns: list[str] | None = None,
+    title: str = "Correlation matrix of process parameters",
+) -> Figure:
+    """Heatmap of the correlation between the process parameters (EDA)."""
+    if columns is None:
+        columns = DEFAULT_CORRELATION_COLUMNS
+    columns = [column for column in columns if column in df.columns]
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.heatmap(
+        df[columns].corr(), annot=True, cmap="coolwarm", fmt=".2f",
+        linewidths=0.5, ax=ax,
+    )
+    ax.set_title(title)
+    plt.tight_layout()
+    return fig
+
+
+def plot_failure_map(
+    df: pd.DataFrame,
+    types: tuple[str, ...] = ("L", "M", "H"),
+    title: str = "When failures occur (red), by machine type",
+) -> Figure:
+    """Scatter of Rotational speed vs Torque per machine type, failures in red."""
+    fig, axes = plt.subplots(
+        1, len(types), figsize=(5 * len(types), 5), sharex=True, sharey=True,
+        squeeze=False,
+    )
+    for ax, machine_type in zip(axes[0], types):
+        subset = df[df["Type"] == machine_type]
+        healthy = subset[subset["Machine failure"] == 0]
+        failed = subset[subset["Machine failure"] == 1]
+        ax.scatter(
+            healthy["Rotational speed [rpm]"], healthy["Torque [Nm]"],
+            s=12, color=NO_FAILURE_SCATTER, alpha=0.6, label="No failure",
+        )
+        ax.scatter(
+            failed["Rotational speed [rpm]"], failed["Torque [Nm]"],
+            s=20, color=FAILURE_SCATTER, alpha=0.8, label="Failure",
+        )
+        ax.set(title=f"Machine type: {machine_type}",
+               xlabel="Rotational speed [rpm]")
+        ax.grid(alpha=0.3)
+
+    axes[0, 0].set_ylabel("Torque [Nm]")
+    axes[0, -1].legend()
+    fig.suptitle(title, fontsize=14)
+    plt.tight_layout()
+    return fig
+
+
+def plot_osf_criterion(
+    df: pd.DataFrame,
+    threshold: float = OSF_THRESHOLD,
+    title: str = "OSF failure analysis (Tool wear × Torque)",
+) -> Figure:
+    """Tool wear vs Torque scatter with the empirical OSF boundary drawn in."""
+    fig, ax = plt.subplots(figsize=(11, 7))
+    sns.scatterplot(
+        data=df, x="Tool wear [min]", y="Torque [Nm]", hue="OSF",
+        size="Power [W]", sizes=(20, 300), alpha=0.7,
+        palette={0: "#a1c9f4", 1: "#ffb3bd"}, ax=ax,
+    )
+    x_line = np.linspace(150, 250, 100)
+    ax.plot(
+        x_line, threshold / x_line, color="red", linestyle="--", linewidth=2,
+        label=f"OSF boundary (~{threshold:.0f})",
+    )
+    ax.set(title=title, xlabel="Tool wear [min]", ylabel="Torque [Nm]")
+    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    ax.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    return fig
+
+
+def plot_flag_analysis(
+    df: pd.DataFrame,
+    flag_col: str,
+    value_col: str,
+    kind: str = "box",
+    palette: str = "Set1",
+    title: str | None = None,
+) -> Figure:
+    """Distribution of ``value_col`` split by a failure-mechanism flag (EDA).
+
+    ``kind`` is "box" or "violin" for the left panel; the right panel is always
+    a KDE histogram. Used for TWF (Tool wear), HDF (Temperature difference) and
+    PWF (Power).
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    if kind == "violin":
+        sns.violinplot(
+            x=flag_col, y=value_col, data=df, hue=flag_col,
+            palette=palette, ax=axes[0], legend=False,
+        )
+    else:
+        sns.boxplot(
+            x=flag_col, y=value_col, hue=flag_col, data=df,
+            palette=palette, ax=axes[0], legend=False,
+        )
+    axes[0].set_title(f"{value_col} by {flag_col}")
+
+    sns.histplot(
+        data=df, x=value_col, hue=flag_col, palette=palette, ax=axes[1], kde=True,
+    )
+    axes[1].set_title(f"Histogram of {value_col}")
+
+    fig.suptitle(title or f"{flag_col}: {value_col}", fontsize=14)
+    plt.tight_layout()
+    return fig
+
+
+def plot_feature_importance(
+    importances,
+    title: str = "Feature importance (final GB model, impurity-based)",
+    xlabel: str = "Importance",
+) -> Figure:
+    """Horizontal bar chart of feature importances (Series or {feature: value})."""
+    if not isinstance(importances, pd.Series):
+        importances = pd.Series(importances)
+    importances = importances.sort_values()
+
+    fig, ax = plt.subplots(figsize=(8, 0.5 * len(importances) + 2))
+    ax.barh(importances.index, importances.to_numpy(), color=NO_FAILURE_COLOR)
+    ax.set(title=title, xlabel=xlabel)
+    ax.grid(alpha=0.3, axis="x")
     plt.tight_layout()
     return fig
