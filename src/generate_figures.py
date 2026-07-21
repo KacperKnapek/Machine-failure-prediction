@@ -14,7 +14,7 @@ The final-evaluation figures (probability distribution, calibration, drift)
 have their own scripts: ``plot_final_probabilities.py``, ``plot_calibration.py``
 and ``check_drift.py``.
 
-Run from the project root: ``python python/generate_figures.py``
+Run from the project root: ``python src/generate_figures.py``
 """
 
 from __future__ import annotations

@@ -4,7 +4,7 @@ Loads the saved artifact (``models/final_model.joblib``), scores X_test and
 draws a histogram of predicted probabilities split by true class, with the
 0.30 (5-10x) and 0.5 candidate thresholds marked for reference.
 
-Run from the project root: ``python python/plot_final_probabilities.py``
+Run from the project root: ``python src/plot_final_probabilities.py``
 """
 
 from __future__ import annotations

@@ -16,7 +16,7 @@ Outputs:
 - ``results/final_model_summary.csv`` — X_test development check,
 - ``models/final_model.joblib`` — fitted model, scaler and metadata.
 
-Run from the project root: ``python python/final_model.py``
+Run from the project root: ``python src/final_model.py``
 """
 
 from __future__ import annotations

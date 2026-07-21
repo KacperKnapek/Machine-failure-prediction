@@ -11,7 +11,7 @@ To check real drift later: replace the ``current`` load below with the new
 production batch (same columns as X_train_raw.csv), re-run, and read
 results/drift_check_train_vs_test.csv (rename the output as needed).
 
-Run from the project root: ``python python/check_drift.py``
+Run from the project root: ``python src/check_drift.py``
 """
 
 from __future__ import annotations

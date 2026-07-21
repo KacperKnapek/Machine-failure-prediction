@@ -58,7 +58,7 @@ and `0.50`).
 
 ## Final model
 
-[`python/final_model.py`](python/final_model.py) trains and saves the selected
+[`src/final_model.py`](src/final_model.py) trains and saves the selected
 configuration to `models/final_model.joblib`:
 
 - **Model:** `GradientBoostingClassifier(random_state=42)`.
@@ -89,14 +89,14 @@ data/
   test/               small fixtures for the batch-inference tests
 models/
   final_model.joblib  model + scaler + feature list + per-cost-ratio thresholds
-python/                reusable, importable modules (see below)
+src/                reusable, importable modules (see below)
 notebooks/             the analysis narrative, 01 → 07
 results/               exported metrics, error tables and figures
 tests/                 unit tests for the batch-inference boundary
 requirements.txt
 ```
 
-### Python modules (`python/`)
+### Python modules (`src/`)
 
 | Module | Purpose |
 |---|---|
@@ -153,13 +153,13 @@ From the project root, with the virtual environment activated:
 
 ```powershell
 # 1. Clean the raw data and engineer features
-python python/cleaning.py
+python src/cleaning.py
 
 # 2. Split, scale (train-only) and export the datasets
-python python/data_preparation.py
+python src/data_preparation.py
 
 # 3. Train and serialize the final model artifact
-python python/final_model.py
+python src/final_model.py
 ```
 
 Step 2 writes six files to `data/processed/` — raw and scaled features,
@@ -168,14 +168,14 @@ Step 2 writes six files to `data/processed/` — raw and scaled features,
 ## Figures
 
 All the important plots live as reusable functions in
-[`python/visualization.py`](python/visualization.py) (single source of truth for
+[`src/visualization.py`](src/visualization.py) (single source of truth for
 the notebooks) and are rendered to `results/` by dedicated runner scripts:
 
 ```powershell
-python python/generate_figures.py          # EDA + final-model feature importance
-python python/plot_final_probabilities.py  # predicted-probability distribution
-python python/plot_calibration.py          # reliability diagram + Brier score
-python python/check_drift.py               # data-drift (PSI) report
+python src/generate_figures.py          # EDA + final-model feature importance
+python src/plot_final_probabilities.py  # predicted-probability distribution
+python src/plot_calibration.py          # reliability diagram + Brier score
+python src/check_drift.py               # data-drift (PSI) report
 ```
 
 `generate_figures.py` produces, in `results/`:
@@ -197,7 +197,7 @@ input, recreates the training-time features, and writes a traceable report
 (probability, decision, threshold and a content-based model version):
 
 ```powershell
-python python/batch_inference.py data/test/valid_input.csv results/batch_predictions.csv --threshold 0.30
+python src/batch_inference.py data/test/valid_input.csv results/batch_predictions.csv --threshold 0.30
 ```
 
 Run the tests for the inference boundary:
@@ -211,7 +211,7 @@ python -m unittest discover -s tests -v
 - **Calibration** ([`06_final_evaluation.ipynb`](notebooks/06_final_evaluation.ipynb)):
   reliability curve and Brier score on out-of-fold and test probabilities
   (Brier ≈ 0.005) — the model is well calibrated at the dense extremes.
-- **Drift monitoring** (`python/check_drift.py`): Population Stability Index on
+- **Drift monitoring** (`src/check_drift.py`): Population Stability Index on
   numeric features plus a proportion difference on the binary type features.
   A PSI above 0.25 on a feature the model relies on (Power, rpm, Temperature
   difference, OSF criterion) is the trigger to investigate. The tool has so far

@@ -9,7 +9,7 @@ Two probability sources are compared:
   development check set (small, and already used during exploration -
   a secondary view, not the final word).
 
-Run from the project root: ``python python/plot_calibration.py``
+Run from the project root: ``python src/plot_calibration.py``
 """
 
 from __future__ import annotations

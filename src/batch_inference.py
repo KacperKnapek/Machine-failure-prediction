@@ -2,7 +2,7 @@
 
 Run from the project root::
 
-    python python/batch_inference.py data/test/valid_input.csv \
+    python src/batch_inference.py data/test/valid_input.csv \
         results/batch_predictions.csv --threshold 0.30
 
 The input contains raw measurements.  This module recreates the engineered

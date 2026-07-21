@@ -15,14 +15,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from python.batch_inference import (  # noqa: E402
+from src.batch_inference import (  # noqa: E402
     DEFAULT_MODEL_PATH,
     InputValidationError,
     engineer_features,
     predict_dataframe,
     run_batch,
 )
-from python.features import add_osf_criterion  # noqa: E402
+from src.features import add_osf_criterion  # noqa: E402
 
 
 TEST_DATA = PROJECT_ROOT / "data" / "test"

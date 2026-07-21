@@ -11,7 +11,7 @@ configuration (baseline features + OSF criterion) under both label variants:
 Each variant gets its own stratified 80/20 split with the standard project
 parameters; the held-out 20% is not touched. Run from the project root:
 
-    python python/sensitivity_analysis.py
+    python src/sensitivity_analysis.py
 """
 
 from __future__ import annotations
