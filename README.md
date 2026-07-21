@@ -44,6 +44,15 @@ markedly improves the best model:
 > exploration and feature design. They are a development check, not untouched
 > final validation — see [Limitations](#limitations-and-next-steps).
 
+### Final-model probability separation
+
+![Predicted failure probability by true class](results/final_model_probability_distribution.png)
+
+The logarithmic count scale keeps the rare borderline records visible. Most
+non-failures receive probabilities close to `0`, while most failures are close
+to `1`; the dashed lines mark the two documented decision thresholds (`0.30`
+and `0.50`).
+
 ## Final model
 
 [`python/final_model.py`](python/final_model.py) trains and saves the selected
@@ -133,7 +142,7 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-Python 3.9 or later is required.
+Python 3.12 is the tested and supported version for the pinned environment.
 
 ## Reproduce the pipeline
 

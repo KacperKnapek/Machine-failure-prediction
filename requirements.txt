@@ -1,16 +1,16 @@
+# Tested with Python 3.12.10
+
 # Data analysis
-numpy>=2.0,<3.0
-pandas>=2.2,<4.0
+numpy==2.5.0
+pandas==3.0.3
 
 # Machine learning
-scikit-learn>=1.4,<2.0
+scikit-learn==1.9.0
+joblib==1.5.3
 
 # Visualisation
-matplotlib>=3.8,<4.0
-seaborn>=0.13,<1.0
-
-# Excel files
-openpyxl>=3.1,<4.0
+matplotlib==3.11.0
+seaborn==0.13.2
 
 # Running the Jupyter notebooks
-jupyter>=1.0,<2.0
+jupyter==1.1.1
